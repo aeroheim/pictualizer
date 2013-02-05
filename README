@@ -11,4 +11,39 @@ SDrop - by Andreas Schlegel
 
 All older versions can be found in the 'archived versions' folder.
 The date format is MMDDYY for archived versions. 
+<<<<<<< HEAD
 No changelogs are unavailable for archived versions.
+=======
+No changelogs are unavailable for archived versions.
+
+
+pictualizer v0.5.0 - updated 2/4/13
+===================================
+
+ * numerous code refactorizations
+ 
+   - truncatePath() now renamed to truncPath()
+
+	- resizeToScreen() method added; all parts of code
+	previously manually resizing now use this method.
+
+	- changeImg() method added; groups all previous
+	image changes for FilterHandler, MusicBars, and super
+	into one method.
+
+	- loadSong() method added; replaces all previous repetitious
+	code that called same instructions.
+
+	- refactored dropEvent()
+
+	- split CP5 declarations into new setupCP5() method; called in setup
+
+ 
+ * optimized code used to counteract SDrop's image drop bug
+
+ * removed many unused global variables in pictualizer
+
+ * Methods.java created; all non-processing methods placed inside
+
+ * TextButton class updated; added essential mutators & accessors
+>>>>>>> 5fb7fb0102ba37cd6bf3920df43f6d47d7243e7d

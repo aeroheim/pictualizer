@@ -28,7 +28,7 @@ class FilterHandler {
         tintMode = true;
         blinkMode = true;
         grayMode = false;
-        blurMode = false;
+        blurMode = true;
         display = true;
     }
     
@@ -49,12 +49,13 @@ class FilterHandler {
     
     public void applyFilters() {
       if ( display ) {
+                  if ( grayMode )
+              grayFilter();
           if ( tintMode )
               tintFilter();
           if ( blurMode )
               blurFilter();
-          if ( grayMode )
-              grayFilter();
+
       }
     }
     
@@ -99,7 +100,7 @@ class FilterHandler {
     }
   
     private void tintFilter() {
-        if ( musicBeat.isKick() && blinkMode ) {
+        if ( musicBeat.isRange(0, 5, 2) && blinkMode ) {
             tint(135, 45);
         }
         else
@@ -111,7 +112,7 @@ class FilterHandler {
     }
   
     private void blurFilter() {
-        if ( musicBeat.isKick() ) 
+        if ( musicBeat.isRange(0, 5, 2) ) 
             image(blurImg, 0, 0);
     }
 
