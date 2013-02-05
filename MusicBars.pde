@@ -37,7 +37,7 @@ class MusicBars {
       mode = STRETCH_MODE;
       debugMode = true;
       display = true;
-      amps = new int[9];
+      amps = new int[21];
       debug = new int[amps.length];
       debugFrame = new int[amps.length];
       debugFrameCount = 0;
@@ -220,5 +220,4 @@ class MusicBars {
       }
   }
        
-    
 }

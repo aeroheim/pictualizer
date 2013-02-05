@@ -11,8 +11,9 @@ import sojamo.drop.*;             //SDrop lib used to incorporate drag and drop 
 
 //TO DO LIST:
 /* USE SKIP INSTEAD OF CUE FOR SEEKING: CHECK IF POS IS CLOSER TO BEGINNING OR CURRENT, AND DECIDE WHETHER TO USE CUE OR SKIP
- * INTEGRATE HAMMING WINDOW
- * CHECK LOGAVERAGES AND SEE IF IMPLEMENTABLE
+ * USE CIRCULAR SEEK AROUND QUEUE INDEX INSTEAD OF SEEK BAR
+ * REPLACE SEEK BAR WITH PLAY << AND PAUSE <<
+ * ALLOW DRAGGING OF TIME AND SONG ELEMENTS
  */
 
 //Textfield throws ArrayIndexOutOfBounds because text length exceeds text field length; perhaps try changing the text field length as well every time a resize occurs?
@@ -35,18 +36,10 @@ boolean shuffleMode;
 
 //Queue system/handler for multiple songs.
 ArrayList songQueue;
-String songPath = "";
 int queueIndex;
 int queueCycle;
 int queueNumWidth = 0;
 
-//FFT data to return amplitudes of specified frequency bands for bars.
-FFT fft;
-FFT fft2;
-float rectHeight;
-int fixHeight;
-int fixFFTWidth;
-int bar;          //Divider length for bars.
 MusicBars bars;
 
 //ControlP5 GUI elements (all textfields).
@@ -65,11 +58,9 @@ Textfield resizeHeightField;
 
 //Drag and drop core element.
 SDrop drop;
-PImage inImage;
+PImage img;
 PImage filterImage;
-PImage newImg;
 boolean imgResized = false;
-boolean changeImg = false;
 
 //Fonts used.
 PFont font;
@@ -113,85 +104,70 @@ int xloc;
 int yloc;
 
 
-//****************************METHODS************************************
-//***********************************************************************
-boolean isInteger(String str) 
-{
-  try 
+  //Add parameter to specify how much of a string is needed to be truncated. I need this so that I can have the proper length for the displayMetaData
+  //and QUEUE menu.
+  //Truncates a String based on its width to given specifications.
+  String truncPath(String str)
   {
-    Integer.parseInt(str);
-    return true;
-  } 
-  catch (NumberFormatException nfe) {
-  }
-  return false;
-}
-
-boolean isFloat(String str)
-{
-  try
-  {
-    parseFloat(str);
-    return true;
-  }
-  catch (NumberFormatException nfe) {
-  }
-  return false;
-}
-
-//Add parameter to specify how much of a string is needed to be truncated. I need this so that I can have the proper length for the displayMetaData
-//and QUEUE menu.
-String truncatePath(String str)
-{
-  StringBuffer helper = new StringBuffer();
-  helper.append(str);
-  String fileName = str.substring(helper.lastIndexOf("\\") + 1, helper.lastIndexOf("."));
-  helper.delete(0, helper.length());
-  if ( ((3 * width)/20 + textWidth(fileName)) > (15 * width)/20 )
-  {  
-    while ( ( (3 * width)/20 + textWidth(fileName)) > (15 * width)/20 )
-    {
-      fileName = fileName.substring(0, fileName.length() - 1);
+    StringBuffer helper = new StringBuffer();
+    helper.append(str);   
+    //Obtain the name of the file name before the extension, marked by "."
+    String fileName = str.substring(helper.lastIndexOf("\\") + 1, helper.lastIndexOf("."));   
+    //Clear the StringBuffer so that it may be reused later on.
+    helper.delete(0, helper.length());   
+    if ( ((3 * width)/20 + textWidth(fileName)) > (15 * width)/20 )
+    {  
+      //Continuously cut off the last char until the String meets specified dimensions.
+      while ( ( (3 * width)/20 + textWidth(fileName)) > (15 * width)/20 )
+      {
+        fileName = fileName.substring(0, fileName.length() - 1);
+      }
+      helper.append(fileName);
+      //Add "..." to indicate that the file path was concatenated.
+      helper.replace(helper.length() - 2, helper.length(), "...");
+      fileName = helper.toString();
     }
-    helper.append(fileName);
-    helper.replace(helper.length() - 2, helper.length(), "...");
-    fileName = helper.toString();
+    return fileName;
   }
-  return fileName;
-}
 
-String removeChar(String str)
-{
-  int length = str.length();
-  StringBuffer digits = new StringBuffer(length);
-  for (int i = 0; i < length; i++)
+  //Automatically resize a large image to fit the current screen's dimensions.
+  void resizeToScreen(PImage img)
   {
-    char ch = str.charAt(i);
-    if ( Character.isDigit(ch) )
-    {
-      digits.append(ch);
-    }
+    if ( ( img.width > displayWidth ) || ( img.height > displayHeight ) )
+      if ( img.width > img.height )
+      {
+        img.resize(displayWidth, 0);
+        if ( img.height > displayHeight )
+          img.resize(0, displayHeight);
+      }
+      else
+        img.resize(0, displayHeight);
   }
-  return digits.toString();
-}
-
-int convertToMillis(int minutesSeconds)
-{
-  int seconds = minutesSeconds % 100;
-  int minutes = minutesSeconds / 100;
-  return (minutes*60000) + (seconds*1000);
-}
-
-int millisToSeconds(int milliseconds)
-{
-  return (milliseconds/1000)%60;
-}
-
-int millisToMinutes(int milliseconds)
-{
-  return milliseconds/60000;
-}
-
+  
+  //Changes the pictualizer picture.
+  void changeImg(PImage img)
+  {
+    resizeToScreen(img);
+    filters.changeImage(img);
+    bars.changeImage(img);
+    frame.setSize(img.width, img.height);
+  }
+  
+  //Calls all necessary commands to load a new song into the pictualizer.
+  void loadSong(String songPath)
+  {
+     songPlayer.close();
+     minim.stop();
+     minim = new Minim(this);
+     songPlayer = minim.loadFile(songPath);
+     bars.changeSource(songPlayer);
+     filters.changeSource(songPlayer, 15);
+     metaData = songPlayer.getMetaData();
+     songPlayer.setGain(volume);
+     songPlayer.play();
+     bars.startBars();
+     playerStart = true; 
+  }
 
 //HELPFUL ADVICE:
 //As an example, if you construct a FourierTransform with a timeSize of 1024 and and a sampleRate of 44100 Hz, 
@@ -202,12 +178,8 @@ void init()
 {
   // to make a frame not displayable, you can
   // use frame.removeNotify()
-
   frame.removeNotify();
   frame.setUndecorated(true);
-
-  // addNotify, here i am not sure if you have 
-  // to add notify again.  
   frame.addNotify();
   super.init();
 }
@@ -215,34 +187,16 @@ void init()
 
 void setup()
 { 
-  inImage = loadImage("background.jpg");
-  if ( ( inImage.width > displayWidth ) || ( inImage.height > displayHeight ) )
-  {
-    if ( inImage.width > inImage.height )
-    {
-      inImage.resize(displayWidth, 0);
-      if ( inImage.height > displayHeight )
-      {
-        inImage.resize(0, displayHeight);
-      }
-    }
-    else
-    {
-      inImage.resize(0, displayHeight);
-    }
-  }
-  size(inImage.width, inImage.height, JAVA2D);
-
+  img = loadImage("revive.jpg");
+  resizeToScreen(img);
+  
+  size(img.width, img.height, JAVA2D);
   tintMode = true;
   blinkMode = true;
-
   stretchMode = true;
   barNum = 9;
-
   divideBars = true;              
   displayMeta = true;
-
-
   bassSensitivity = .0075;        
   midSensitivity = .02;
   highSensitivity = .06;
@@ -251,27 +205,16 @@ void setup()
   minim = new Minim(this);
   in = minim.getLineIn();
 
-  fft = new FFT(in.bufferSize(), in.sampleRate());
+  songPlayer = minim.loadFile("Quest_Complete.mp3");
+  //songPlayer.pause();
 
-  fixFFTWidth = ceil(width - ((width/barNum) * barNum));  //Simple but not advanced hack to eliminate the problem with bars rounding their coordinates and thus
-  if (fixFFTWidth < barNum)                                //leaving empty pixels at the very end of the picture.
-    fixFFTWidth = 1;
-  else
-    fixFFTWidth = ceil(fixFFTWidth/barNum);
-
-  songPlayer = minim.loadFile("03-tokyo_jihen-kokoro-jrp.mp3");
-  songPlayer.pause();
-
-  songQueue = new ArrayList();
-
-  fft2 = new FFT(songPlayer.bufferSize(), songPlayer.sampleRate());
+  songQueue = new ArrayList<String>();
 
   font = createFont("Century Gothic", 10, true);
   font2 = createFont("Meiryo", (width + height)/100, true);
 
-  //*************TESTING NEW CLASSES*****************
-  filters = new FilterHandler(songPlayer, inImage);
-  bars = new MusicBars(songPlayer, inImage, font);
+  filters = new FilterHandler(songPlayer, img);
+  bars = new MusicBars(songPlayer, img, font);
   bars.pauseBars();
 
 
@@ -299,7 +242,8 @@ void setup()
 
   bassField = cp5.addTextfield(" ")
     .setPosition((21 * width)/40 + textWidth(": : bass"), (11 * height)/32 - textAscent() + 1)
-      .setSize((4 * width)/80, (int) textAscent())
+      //Why does this cause ArrayIndexOutOfBounds error? Fucking ControlP5 is always buggy as fuck.
+      //.setSize((4 * width)/80, (int) textAscent())
         .setFont(font)
           .setText(""+bars.getBassSensitivity())           
             .setFocus(false)
@@ -409,140 +353,69 @@ void setup()
   seeker.hide();
 
   drop = new SDrop(this);
-
-  frame.setResizable(true);            //Allows the frame to be resized.
+  //Allows the frame to be resized.
+  frame.setResizable(true);
   noStroke();
   smooth();
   frameRate(60);
 }
 
-void dropEvent(DropEvent theDropEvent) 
-{
-  if ( theDropEvent.isImage() ) 
-  { 
+//******************************************************************************************************
+//Drag n' Drop event handler. Allows the pictualizer to load new images and songs that are dragged to it.
+//******************************************************************************************************
+//******************************************************************************************************
+void dropEvent(DropEvent theDropEvent) {
+  //If the DropEvent is an image.
+  if ( theDropEvent.isImage() ) { 
     if ( imgResized )                //Refresh text input fields, since controlp5's text fields are BUGGY AS SHIT. HOLY FUCK.
-    {
       imgResized = false;
-    }
-    newImg = theDropEvent.loadImage();
-    changeImg = true;
+    img = loadImage(theDropEvent.filePath());
+    changeImg(img);
     imgResized = true;
   }
-  else if ( theDropEvent.isFile() && audioPlayerMode )
-  { 
-    File myFile = theDropEvent.file();
-    if ( myFile.isDirectory() )
-    {
-      int helper = 0;
-      File[] folder = theDropEvent.listFilesAsArray(myFile, true);
-      String[] songs = new String[folder.length];
-      for ( int i = 0; i < folder.length; i++ )
-      {
-        songs[i] = folder[i].getPath();
-        if ( songs[i].indexOf(".mp3") != -1 || songs[i].indexOf(".wav") != -1 || songs[i].indexOf(".MP3") != -1 || songs[i].indexOf(".WAV") != -1 )
-        {
-          helper = i;
-          songQueue.add(""+songs[i]);
-          queueIndex = songQueue.size();
+  else if ( theDropEvent.isFile() && audioPlayerMode ) { 
+    File theFile = theDropEvent.file();
+    if ( theFile.isDirectory() ) {
+      File[] folder = theDropEvent.listFilesAsArray(theFile, true);
+      for ( int i = 0; i < folder.length; i++ ) {
+        if ( folder[i].getPath().toLowerCase().indexOf(".mp3") != -1 || folder[i].getPath().toLowerCase().indexOf(".wav") != -1 ) {
+          songQueue.add(folder[i].getPath());
+          queueIndex++;
         }
       }
-      if ( helper != 0 )
-      { 
+      if ( !songQueue.isEmpty() ) { 
         if ( queueIndex > 9 )
-        {
           queueCycle = queueIndex - 9;
-        }
-        songPlayer.close();
-        minim.stop();
-        minim = new Minim(this);
-        songPlayer = minim.loadFile(songs[helper]);
-        bars.changeSource(songPlayer);
-        filters.changeSource(songPlayer, 0);
-        metaData = songPlayer.getMetaData();
-        songPlayer.setGain(volume);
-        songPlayer.play();
-        bars.startBars();
-        playerStart = true;
-        songs = null;
+        loadSong((String)songQueue.get(songQueue.size() - 1));
       }
     }
-    songPath = ""+theDropEvent.filePath();
-    if ( songPath.endsWith(".mp3") || songPath.endsWith(".wav") || songPath.endsWith(".MP3") || songPath.endsWith(".WAV") )
-    { 
-      if ( queueIndex > 9 )
-      {
-        queueCycle = queueIndex - 8;
+    else if ( theDropEvent.filePath().toLowerCase().endsWith(".mp3") || theDropEvent.filePath().toLowerCase().endsWith(".wav") ) {
+      songQueue.add(theDropEvent.filePath());
+      queueIndex++;
+      if ( !songQueue.isEmpty() ) { 
+        if ( queueIndex > 9 )
+          queueCycle = queueIndex - 9;
+        loadSong((String)songQueue.get(songQueue.size() - 1));
       }
-      songPlayer.close();
-      minim.stop();
-      minim = new Minim(this);
-      songPlayer = minim.loadFile(songPath);
-      bars.changeSource(songPlayer);
-      filters.changeSource(songPlayer, 0);
-      metaData = songPlayer.getMetaData();
-      songPlayer.setGain(volume);
-      songPlayer.play();
-      bars.startBars();
-      playerStart = true;
-      songQueue.add(""+songPath);
-      queueIndex = songQueue.size();
     }
   }
 }
 
-void draw()                //My goal is to divide the total frequency spectrum into X bars for visualization. Thus, each bar spans a range of 22050Hz/X.
-{ 
-  if ( changeImg )                  
-  { 
-    //SDROP caused me so more trouble than I had ever imagined. 
-    //This loop addresses the delay SDROP has with its drop event image processing; if it messes up
-    //and still has not loaded the image properly, the frame is redrawn until it has finally loaded it.
-    g.removeCache(inImage);
-    inImage = null;
-    System.gc();
-    while ( newImg.get (0, 0) == newImg.get(newImg.width, newImg.height) )        
-    {
-      redraw();
-    }
-    inImage = newImg;
-    g.removeCache(newImg);
-    newImg = null;
-    System.gc();
-    if ( ( inImage.width > displayWidth ) || ( inImage.height > displayHeight ) )
-    {
-      if ( inImage.width > inImage.height )
-      {
-        inImage.resize(displayWidth, 0);
-        if ( inImage.height > displayHeight )
-        {
-          inImage.resize(0, displayHeight);
-        }
-      }
-      else
-      {
-        inImage.resize(0, displayHeight);
-      }
-    }
-    filters.changeImage(inImage);
-    bars.changeImage(inImage);
-    frame.setSize(inImage.width, inImage.height);
-    changeImg = false;
-    fixFFTWidth = ceil(width - ((width/barNum) * barNum));
-    if (fixFFTWidth < barNum)
-      fixFFTWidth = 1;
-    else
-      fixFFTWidth = ceil(fixFFTWidth/barNum);
-  }   
 
-  image(inImage, 0, 0);
+//******************************************************************************************************
+//Main draw loop that runs the pictualizer.
+//******************************************************************************************************
+//******************************************************************************************************
+void draw()
+{ 
+  image(img, 0, 0);
   filters.applyFilters(); 
   bars.drawBars();
-
   displayGUI();
-
   if ( audioPlayerMode )
     checkPlayerStatus();
 }
+
 
 void checkPlayerStatus()
 {
@@ -558,7 +431,7 @@ void checkPlayerStatus()
       {
         queueCycle = queueIndex - 9;
       }
-      filters.changeSource(songPlayer, 0); 
+      filters.changeSource(songPlayer, 15); 
       bars.changeSource(songPlayer);      
       metaData = songPlayer.getMetaData();
       songPlayer.setGain(volume);
@@ -576,7 +449,7 @@ void checkPlayerStatus()
       {
         queueCycle = queueIndex - 9;
       }
-      filters.changeSource(songPlayer, 0);   
+      filters.changeSource(songPlayer, 15);   
       bars.changeSource(songPlayer);    
       metaData = songPlayer.getMetaData();
       songPlayer.setGain(volume);
@@ -590,7 +463,7 @@ void checkPlayerStatus()
       minim = new Minim(this);
       queueIndex++;
       songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
-      filters.changeSource(songPlayer, 0);
+      filters.changeSource(songPlayer, 15);
       bars.changeSource(songPlayer);      
       metaData = songPlayer.getMetaData();
       songPlayer.setGain(volume);
@@ -603,6 +476,18 @@ void checkPlayerStatus()
     }
   }
 }
+
+  int scaleFontSize(PFont font, int maxSize, int heightLimit) {
+    int fontSize = 1; 
+    textFont(font, fontSize);
+    int textHeight = (int) textAscent();
+    while ( fontSize < maxSize && textHeight < heightLimit ) {
+      fontSize++;
+      textHeight = (int) textAscent(); 
+    }
+    return fontSize;
+  }
+
 
 void displayGUI()
 {
@@ -624,10 +509,9 @@ void displayGUI()
         .setFont(font2);
   }
 
-  textFont(font, (width + height)/125);
+  textFont(font, scaleFontSize(font, 10, height/15));
   if ( mouseY < textAscent() * 2.5)                        //Reveals the task bar on top of the program.
   {                                                 //Triggered by movement of the mouse into the top of the program.
-    textFont(font, (width + height)/125);
     textAlign(LEFT);
     fill(50, 50, 50, 50);
     rect(0, 0, width, textAscent() * 2.5);
@@ -712,8 +596,8 @@ void displayGUI()
         text(">>", textAscent() * 6 + queueNumWidth/2, textAscent() * 7.5);
       }
     }
-    if ( ((mouseX > textAscent() * 8.5 + queueNumWidth) && (mouseX < textAscent() * 8.5 + textWidth(truncatePath(metaData.fileName())+" ("
-      +millisToMinutes(songPlayer.length())+":0"+millisToSeconds(songPlayer.length())+")")+ queueNumWidth)) 
+    if ( ((mouseX > textAscent() * 8.5 + queueNumWidth) && (mouseX < textAscent() * 8.5 + textWidth(truncPath(metaData.fileName())+" ("
+      +Methods.millisToMinutes(songPlayer.length())+":0"+Methods.millisToSeconds(songPlayer.length())+")")+ queueNumWidth)) 
       && ( (mouseY < textAscent() * 8.5) && (mouseY > textAscent() * 2.8 )) )  
     { 
       fill(175, 175, 175);
@@ -830,13 +714,13 @@ void displayGUI()
         queueNumWidth = (int) textWidth(""+queueIndex) - (int) textWidth("0"+queueIndex%10);
       }
       textFont(font2, (height + width)/100);
-      if ( millisToSeconds(songPlayer.length()) < 10 )
+      if ( Methods.millisToSeconds(songPlayer.length()) < 10 )
       {
-        text(""+truncatePath(metaData.fileName())+" ("+millisToMinutes(songPlayer.length())+":0"+millisToSeconds(songPlayer.length())+")", textAscent() * 8.5 + queueNumWidth, textAscent() * 3.8);
+        text(""+truncPath(metaData.fileName())+" ("+Methods.millisToMinutes(songPlayer.length())+":0"+Methods.millisToSeconds(songPlayer.length())+")", textAscent() * 8.5 + queueNumWidth, textAscent() * 3.8);
       }
       else
       {
-        text(""+truncatePath(metaData.fileName())+" ("+millisToMinutes(songPlayer.length())+":"+millisToSeconds(songPlayer.length())+")", textAscent() * 8.5 + queueNumWidth, textAscent() * 3.8);
+        text(""+truncPath(metaData.fileName())+" ("+Methods.millisToMinutes(songPlayer.length())+":"+Methods.millisToSeconds(songPlayer.length())+")", textAscent() * 8.5 + queueNumWidth, textAscent() * 3.8);
       }
       if ( metaData.author().equals("") )
       {
@@ -853,13 +737,13 @@ void displayGUI()
       textFont(font, (width + height)/11);
       fill(255, 255, 255);
       textAlign(RIGHT, BASELINE);
-      if ( millisToSeconds(songPlayer.position()) < 10 )
+      if ( Methods.millisToSeconds(songPlayer.position()) < 10 )
       {
-        text(""+millisToMinutes(songPlayer.position())+":0"+millisToSeconds(songPlayer.position()), width - textDescent(), height - textDescent());
+        text(""+Methods.millisToMinutes(songPlayer.position())+":0"+Methods.millisToSeconds(songPlayer.position()), width - textDescent(), height - textDescent());
       }
       else
       {
-        text(""+millisToMinutes(songPlayer.position())+":"+millisToSeconds(songPlayer.position()), width - textDescent(), height - textDescent());
+        text(""+Methods.millisToMinutes(songPlayer.position())+":"+Methods.millisToSeconds(songPlayer.position()), width - textDescent(), height - textDescent());
       }
     }
   }
@@ -870,7 +754,7 @@ void displayGUI()
 
   if ( optionMode )                    //Displays the Options menu.
   { 
-    cp5.show();
+    //cp5.show();
     fill(50, 50, 50, 50);
     rect(width/5, height/4, (3*width)/5, height/2);
     fill(255, 255, 255);
@@ -1031,19 +915,19 @@ void displayGUI()
     fill(100, 100, 100);
     if ( queueCycle < songQueue.size() )
     {
-      text(""+(queueCycle + 1)+"  "+truncatePath((String)songQueue.get(queueCycle)), width/3.5, height/3);
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 1)+"  "+truncatePath((String)songQueue.get(queueCycle))))
+      text(""+(queueCycle + 1)+"  "+truncPath((String)songQueue.get(queueCycle)), width/3.5, height/3);
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 1)+"  "+truncPath((String)songQueue.get(queueCycle))))
         && (mouseY > height/3 - textAscent() && mouseY < height/3 ) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle))
       {
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 1)+"  "+truncatePath((String)songQueue.get(queueCycle)), width/3.5, height/3);
+          text(""+(queueCycle + 1)+"  "+truncPath((String)songQueue.get(queueCycle)), width/3.5, height/3);
         }
         else
         { 
           fill(175, 175, 175);
-          text(""+(queueCycle + 1)+"  "+truncatePath((String)songQueue.get(queueCycle)), width/3.5, height/3);
+          text(""+(queueCycle + 1)+"  "+truncPath((String)songQueue.get(queueCycle)), width/3.5, height/3);
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1060,19 +944,19 @@ void displayGUI()
     }
     if ( queueCycle + 1 < songQueue.size() )
     {
-      text(""+(queueCycle + 2)+"  "+truncatePath((String)songQueue.get(queueCycle + 1)), width/3.5, height/3 + height/25);
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 2)+"  "+truncatePath((String)songQueue.get(queueCycle + 1))))
+      text(""+(queueCycle + 2)+"  "+truncPath((String)songQueue.get(queueCycle + 1)), width/3.5, height/3 + height/25);
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 2)+"  "+truncPath((String)songQueue.get(queueCycle + 1))))
         && (mouseY > height/3 + height/25 - textAscent() && mouseY < height/3 + height/25 ) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 1))
       { 
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 1) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 2)+"  "+truncatePath((String)songQueue.get(queueCycle + 1)), width/3.5, height/3 + height/25);
+          text(""+(queueCycle + 2)+"  "+truncPath((String)songQueue.get(queueCycle + 1)), width/3.5, height/3 + height/25);
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 2)+"  "+truncatePath((String)songQueue.get(queueCycle + 1)), width/3.5, height/3 + height/25);
+          text(""+(queueCycle + 2)+"  "+truncPath((String)songQueue.get(queueCycle + 1)), width/3.5, height/3 + height/25);
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1085,19 +969,19 @@ void displayGUI()
     }
     if ( queueCycle + 2 < songQueue.size() )
     {
-      text(""+(queueCycle + 3)+"  "+truncatePath((String)songQueue.get(queueCycle + 2)), width/3.5, height/3 + (2 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 3)+"  "+truncatePath((String)songQueue.get(queueCycle + 2))))
+      text(""+(queueCycle + 3)+"  "+truncPath((String)songQueue.get(queueCycle + 2)), width/3.5, height/3 + (2 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 3)+"  "+truncPath((String)songQueue.get(queueCycle + 2))))
         && (mouseY > height/3 + (2 * height/25) - textAscent() && mouseY < height/3 + (2 * height/25 )) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 2))
       { 
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 2) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 3)+"  "+truncatePath((String)songQueue.get(queueCycle + 2)), width/3.5, height/3 + (2 * height/25));
+          text(""+(queueCycle + 3)+"  "+truncPath((String)songQueue.get(queueCycle + 2)), width/3.5, height/3 + (2 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 3)+"  "+truncatePath((String)songQueue.get(queueCycle + 2)), width/3.5, height/3 + (2 * height/25));
+          text(""+(queueCycle + 3)+"  "+truncPath((String)songQueue.get(queueCycle + 2)), width/3.5, height/3 + (2 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1110,19 +994,19 @@ void displayGUI()
     }
     if ( queueCycle + 3 < songQueue.size() )
     {
-      text(""+(queueCycle + 4)+"  "+truncatePath((String)songQueue.get(queueCycle + 3)), width/3.5, height/3 + (3 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 4)+"  "+truncatePath((String)songQueue.get(queueCycle + 3))))
+      text(""+(queueCycle + 4)+"  "+truncPath((String)songQueue.get(queueCycle + 3)), width/3.5, height/3 + (3 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 4)+"  "+truncPath((String)songQueue.get(queueCycle + 3))))
         && (mouseY > height/3 + (3 * height/25) - textAscent() && mouseY < height/3 + (3 * height/25)) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 3))
       { 
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 3) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 4)+"  "+truncatePath((String)songQueue.get(queueCycle + 3)), width/3.5, height/3 + (3 * height/25));
+          text(""+(queueCycle + 4)+"  "+truncPath((String)songQueue.get(queueCycle + 3)), width/3.5, height/3 + (3 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 4)+"  "+truncatePath((String)songQueue.get(queueCycle + 3)), width/3.5, height/3 + (3 * height/25));
+          text(""+(queueCycle + 4)+"  "+truncPath((String)songQueue.get(queueCycle + 3)), width/3.5, height/3 + (3 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1135,19 +1019,19 @@ void displayGUI()
     }
     if ( queueCycle + 4 < songQueue.size() )
     {
-      text(""+(queueCycle + 5)+"  "+truncatePath((String)songQueue.get(queueCycle + 4)), width/3.5, height/3 + (4 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 5)+"  "+truncatePath((String)songQueue.get(queueCycle + 4))))
+      text(""+(queueCycle + 5)+"  "+truncPath((String)songQueue.get(queueCycle + 4)), width/3.5, height/3 + (4 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 5)+"  "+truncPath((String)songQueue.get(queueCycle + 4))))
         && (mouseY > height/3 + (4 * height/25) - textAscent() && mouseY < height/3 + (4 * height/25)) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 4))
       { 
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 4) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 5)+"  "+truncatePath((String)songQueue.get(queueCycle + 4)), width/3.5, height/3 + (4 * height/25));
+          text(""+(queueCycle + 5)+"  "+truncPath((String)songQueue.get(queueCycle + 4)), width/3.5, height/3 + (4 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 5)+"  "+truncatePath((String)songQueue.get(queueCycle + 4)), width/3.5, height/3 + (4 * height/25));
+          text(""+(queueCycle + 5)+"  "+truncPath((String)songQueue.get(queueCycle + 4)), width/3.5, height/3 + (4 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1160,19 +1044,19 @@ void displayGUI()
     }
     if ( queueCycle + 5 < songQueue.size() )
     {
-      text(""+(queueCycle + 6)+"  "+truncatePath((String)songQueue.get(queueCycle + 5)), width/3.5, height/3 + (5 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 6)+"  "+truncatePath((String)songQueue.get(queueCycle + 5))))
+      text(""+(queueCycle + 6)+"  "+truncPath((String)songQueue.get(queueCycle + 5)), width/3.5, height/3 + (5 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 6)+"  "+truncPath((String)songQueue.get(queueCycle + 5))))
         && (mouseY > height/3 + (5 * height/25) - textAscent() && mouseY < height/3 + (5 * height/25)) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 5))
       { 
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 5) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 6)+"  "+truncatePath((String)songQueue.get(queueCycle + 5)), width/3.5, height/3 + (5 * height/25));
+          text(""+(queueCycle + 6)+"  "+truncPath((String)songQueue.get(queueCycle + 5)), width/3.5, height/3 + (5 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 6)+"  "+truncatePath((String)songQueue.get(queueCycle + 5)), width/3.5, height/3 + (5 * height/25));
+          text(""+(queueCycle + 6)+"  "+truncPath((String)songQueue.get(queueCycle + 5)), width/3.5, height/3 + (5 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1185,19 +1069,19 @@ void displayGUI()
     }
     if ( queueCycle + 6 < songQueue.size() )
     {
-      text(""+(queueCycle + 7)+"  "+truncatePath((String)songQueue.get(queueCycle + 6)), width/3.5, height/3 + (6 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 7)+"  "+truncatePath((String)songQueue.get(queueCycle + 6))))
+      text(""+(queueCycle + 7)+"  "+truncPath((String)songQueue.get(queueCycle + 6)), width/3.5, height/3 + (6 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 7)+"  "+truncPath((String)songQueue.get(queueCycle + 6))))
         && (mouseY > height/3 + (6 * height/25) - textAscent() && mouseY < height/3 + (6 * height/25)) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 6))
       {
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 6) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 7)+"  "+truncatePath((String)songQueue.get(queueCycle + 6)), width/3.5, height/3 + (6 * height/25));
+          text(""+(queueCycle + 7)+"  "+truncPath((String)songQueue.get(queueCycle + 6)), width/3.5, height/3 + (6 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 7)+"  "+truncatePath((String)songQueue.get(queueCycle + 6)), width/3.5, height/3 + (6 * height/25));
+          text(""+(queueCycle + 7)+"  "+truncPath((String)songQueue.get(queueCycle + 6)), width/3.5, height/3 + (6 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1210,19 +1094,19 @@ void displayGUI()
     }
     if ( queueCycle + 7 < songQueue.size() )
     {
-      text(""+(queueCycle + 8)+"  "+truncatePath((String)songQueue.get(queueCycle + 7)), width/3.5, height/3 + (7 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 8)+"  "+truncatePath((String)songQueue.get(queueCycle + 7))))
+      text(""+(queueCycle + 8)+"  "+truncPath((String)songQueue.get(queueCycle + 7)), width/3.5, height/3 + (7 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 8)+"  "+truncPath((String)songQueue.get(queueCycle + 7))))
         && (mouseY > height/3 + (7 * height/25) - textAscent() && mouseY < height/3 + (7 * height/25)) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 7))
       {
         if ( songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 7) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 8)+"  "+truncatePath((String)songQueue.get(queueCycle + 7)), width/3.5, height/3 + (7 * height/25));
+          text(""+(queueCycle + 8)+"  "+truncPath((String)songQueue.get(queueCycle + 7)), width/3.5, height/3 + (7 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 8)+"  "+truncatePath((String)songQueue.get(queueCycle + 7)), width/3.5, height/3 + (7 * height/25));
+          text(""+(queueCycle + 8)+"  "+truncPath((String)songQueue.get(queueCycle + 7)), width/3.5, height/3 + (7 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1235,19 +1119,19 @@ void displayGUI()
     }
     if ( queueCycle + 8 < songQueue.size() )
     {
-      text(""+(queueCycle + 9)+"  "+truncatePath((String)songQueue.get(queueCycle + 8)), width/3.5, height/3 + (8 * height/25));
-      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 9)+"  "+truncatePath((String)songQueue.get(queueCycle + 8))))
+      text(""+(queueCycle + 9)+"  "+truncPath((String)songQueue.get(queueCycle + 8)), width/3.5, height/3 + (8 * height/25));
+      if ( (mouseX > width/3.7 && mouseX < width/3.5 + textWidth(""+(queueCycle + 9)+"  "+truncPath((String)songQueue.get(queueCycle + 8))))
         && (mouseY > height/3 + (8 * height/25) - textAscent() && mouseY < height/3 + (8 * height/25)) || songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 8))
       { 
         if (  songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 8) )
         {
           fill(255, 255, 255);
-          text(""+(queueCycle + 9)+"  "+truncatePath((String)songQueue.get(queueCycle + 8)), width/3.5, height/3 + (8 * height/25));
+          text(""+(queueCycle + 9)+"  "+truncPath((String)songQueue.get(queueCycle + 8)), width/3.5, height/3 + (8 * height/25));
         }
         else
         {
           fill(175, 175, 175);
-          text(""+(queueCycle + 9)+"  "+truncatePath((String)songQueue.get(queueCycle + 8)), width/3.5, height/3 + (8 * height/25));
+          text(""+(queueCycle + 9)+"  "+truncPath((String)songQueue.get(queueCycle + 8)), width/3.5, height/3 + (8 * height/25));
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1491,7 +1375,7 @@ void mouseClicked()
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
         }
         bars.changeSource(songPlayer);
-        filters.changeSource(songPlayer, 0);                
+        filters.changeSource(songPlayer, 15);                
         metaData = songPlayer.getMetaData();
         songPlayer.setGain(volume);
         songPlayer.play();
@@ -1519,7 +1403,7 @@ void mouseClicked()
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
         }
         bars.changeSource(songPlayer);
-        filters.changeSource(songPlayer, 0);                
+        filters.changeSource(songPlayer, 15);                
         metaData = songPlayer.getMetaData();
         songPlayer.setGain(volume);
         songPlayer.play();
@@ -1653,7 +1537,7 @@ void mouseClicked()
           audioInputMode = false;
           audioPlayerMode = true;
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);
+          filters.changeSource(songPlayer, 15);
           //Determine if bars needed to be paused upon exiting audio input mode.
           if ( songQueue.isEmpty() )
               bars.pauseBars();
@@ -1683,7 +1567,7 @@ void mouseClicked()
           audioPlayerMode = true;
           audioInputMode = false;
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);
+          filters.changeSource(songPlayer, 15);
           //Determine if bars needed to be paused upon exiting audio input mode.
           if ( songQueue.isEmpty() )
               bars.pauseBars();
@@ -1735,14 +1619,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 - textAscent() && mouseY < height/3 )
       {
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 1)+"  "+truncatePath((String)songQueue.get(queueCycle))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 1)+"  "+truncPath((String)songQueue.get(queueCycle))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle)))
         {
           songPlayer.close();
           queueIndex = queueCycle + 1;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1766,14 +1650,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + height/25 - textAscent() && mouseY < height/3 + height/25 )
       {
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 2)+"  "+truncatePath((String)songQueue.get(queueCycle + 1))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 2)+"  "+truncPath((String)songQueue.get(queueCycle + 1))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 1)))
         {
           songPlayer.close();
           queueIndex = queueCycle + 2;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1797,14 +1681,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (2 * height/25) - textAscent() && mouseY < height/3 + (2 * height/25 ) )
       { 
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 3)+"  "+truncatePath((String)songQueue.get(queueCycle + 2))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 3)+"  "+truncPath((String)songQueue.get(queueCycle + 2))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 2)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 3;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1828,14 +1712,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (3 * height/25) - textAscent() && mouseY < height/3 + (3 * height/25) )
       { 
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 4)+"  "+truncatePath((String)songQueue.get(queueCycle + 3))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 4)+"  "+truncPath((String)songQueue.get(queueCycle + 3))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 3)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 4;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1859,14 +1743,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (4 * height/25) - textAscent() && mouseY < height/3 + (4 * height/25) ) 
       { 
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 5)+"  "+truncatePath((String)songQueue.get(queueCycle + 4))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 5)+"  "+truncPath((String)songQueue.get(queueCycle + 4))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 4)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 5;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1890,14 +1774,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (5 * height/25) - textAscent() && mouseY < height/3 + (5 * height/25) )
       { 
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 6)+"  "+truncatePath((String)songQueue.get(queueCycle + 5))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 6)+"  "+truncPath((String)songQueue.get(queueCycle + 5))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 5)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 6;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1921,14 +1805,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (6 * height/25) - textAscent() && mouseY < height/3 + (6 * height/25) )
       {
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 7)+"  "+truncatePath((String)songQueue.get(queueCycle + 6)))) 
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 7)+"  "+truncPath((String)songQueue.get(queueCycle + 6)))) 
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 6)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 7;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1952,14 +1836,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (7 * height/25) - textAscent() && mouseY < height/3 + (7 * height/25) )
       {
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 8)+"  "+truncatePath((String)songQueue.get(queueCycle + 7))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 8)+"  "+truncPath((String)songQueue.get(queueCycle + 7))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 7)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 8;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -1983,14 +1867,14 @@ void mouseClicked()
     {
       if ( mouseY > height/3 + (8 * height/25) - textAscent() && mouseY < height/3 + (8 * height/25) )
       { 
-        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 9)+"  "+truncatePath((String)songQueue.get(queueCycle + 8))))
+        if ( (mouseX > width/3.5 && mouseX < width/3.5 + textWidth(""+(queueCycle + 9)+"  "+truncPath((String)songQueue.get(queueCycle + 8))))
           && !(songQueue.get(queueIndex - 1) == songQueue.get(queueCycle + 8)) )
         {
           songPlayer.close();
           queueIndex = queueCycle + 9;
           songPlayer = minim.loadFile((String)songQueue.get(queueIndex - 1));
           bars.changeSource(songPlayer);
-          filters.changeSource(songPlayer, 0);                
+          filters.changeSource(songPlayer, 15);                
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
@@ -2092,7 +1976,7 @@ void controlEvent(ControlEvent theEvent)
   { 
     if ( theEvent.getName().equals(barField.getName()) )
     {
-      if ( !isInteger(theEvent.getStringValue()) )
+      if ( !Methods.isInteger(theEvent.getStringValue()) )
       {
         bars.setNumBars(0);
       }
@@ -2104,7 +1988,7 @@ void controlEvent(ControlEvent theEvent)
   }
   if ( theEvent.getName().equals(bassField.getName()) )
   {
-    if ( !isFloat(theEvent.getStringValue()) )
+    if ( !Methods.isFloat(theEvent.getStringValue()) )
     {
       bars.setBassSensitivity(0);
     }
@@ -2115,7 +1999,7 @@ void controlEvent(ControlEvent theEvent)
   }
   if ( theEvent.getName().equals(midField.getName()) )
   {
-    if ( !isFloat(theEvent.getStringValue()) )
+    if ( !Methods.isFloat(theEvent.getStringValue()) )
     {
       bars.setMidSensitivity(0);
     }
@@ -2126,7 +2010,7 @@ void controlEvent(ControlEvent theEvent)
   }
   if ( theEvent.getName().equals(highField.getName()) )
   {
-    if ( !isFloat(theEvent.getStringValue()) )
+    if ( !Methods.isFloat(theEvent.getStringValue()) )
     {
       bars.setHiSensitivity(0);
     }
@@ -2137,7 +2021,7 @@ void controlEvent(ControlEvent theEvent)
   }
   if ( theEvent.getName().equals(allField.getName()) )
   {
-    if ( !isFloat(theEvent.getStringValue()) )
+    if ( !Methods.isFloat(theEvent.getStringValue()) )
     {
       bars.setAllSensitivity(0);
     }
@@ -2148,7 +2032,7 @@ void controlEvent(ControlEvent theEvent)
   }
   if ( theEvent.getName().equals(resizeWidthField.getName()) )
   {
-    if ( !isInteger(theEvent.getStringValue()) )
+    if ( !Methods.isInteger(theEvent.getStringValue()) )
     {
       width = width;
     }
@@ -2158,27 +2042,18 @@ void controlEvent(ControlEvent theEvent)
       {
         imgResized = false;
       }
-      if ( changeImg )
-      {
-        changeImg = false;
-      }
-      inImage.resize(Integer.parseInt(theEvent.getStringValue()), 0);
-      frame.setSize(inImage.width, inImage.height);
+      img.resize(Integer.parseInt(theEvent.getStringValue()), 0);
+      frame.setSize(img.width, img.height);
       imgResized = true;
-      resizeHeightField.setText(""+inImage.height);
-      inImage = inImage.get();
-      bars.changeImage(inImage);
-      filters.changeImage(inImage);
-      fixFFTWidth = ceil(width - ((width/barNum) * barNum));
-      if (fixFFTWidth < barNum)
-        fixFFTWidth = 1;
-      else
-        fixFFTWidth = ceil(fixFFTWidth/barNum);
+      resizeHeightField.setText(""+img.height);
+      img = img.get();
+      bars.changeImage(img);
+      filters.changeImage(img);
     }
   }
   if ( theEvent.getName().equals(resizeHeightField.getName()) )
   {
-    if ( !isInteger(theEvent.getStringValue()) )
+    if ( !Methods.isInteger(theEvent.getStringValue()) )
     {
       height = height;
     }
@@ -2188,38 +2063,29 @@ void controlEvent(ControlEvent theEvent)
       {
         imgResized = false;
       }
-      if ( changeImg )
-      {
-        changeImg = false;
-      }
-      inImage.resize(0, Integer.parseInt(theEvent.getStringValue()));
-      frame.setSize(inImage.width, inImage.height);
+      img.resize(0, Integer.parseInt(theEvent.getStringValue()));
+      frame.setSize(img.width, img.height);
       imgResized = true;
-      resizeWidthField.setText(""+inImage.width);
-      inImage = inImage.get();
-      bars.changeImage(inImage);
-      filters.changeImage(inImage);
-      fixFFTWidth = ceil(width - ((width/barNum) * barNum));
-      if (fixFFTWidth < barNum)
-        fixFFTWidth = 1;
-      else
-        fixFFTWidth = ceil(fixFFTWidth/barNum);
+      resizeWidthField.setText(""+img.width);
+      img = img.get();
+      bars.changeImage(img);
+      filters.changeImage(img);
     }
   }
   if ( theEvent.getName().equals(seekField.getName()) )
   {
-    if ( !isInteger(removeChar(theEvent.getStringValue())) || (convertToMillis(Integer.parseInt(removeChar(theEvent.getStringValue()))) > songPlayer.length() ) )
+    if ( !Methods.isInteger(Methods.removeChar(theEvent.getStringValue())) || (Methods.convertToMillis(Integer.parseInt(Methods.removeChar(theEvent.getStringValue()))) > songPlayer.length() ) )
     {
       seekField.setValue("n/a");
     }
     else
     {
-      songPlayer.cue(convertToMillis(Integer.parseInt(removeChar(theEvent.getStringValue()))));
+      songPlayer.cue(Methods.convertToMillis(Integer.parseInt(Methods.removeChar(theEvent.getStringValue()))));
     }
   }
   if ( theEvent.getName().equals(volField.getName()) )
   {
-    if ( !isFloat(theEvent.getStringValue()) )
+    if ( !Methods.isFloat(theEvent.getStringValue()) )
     {
       volField.setValue(""+volume);
     }
