@@ -11,7 +11,7 @@ class FilterHandler {
   
     private BeatDetect musicBeat;
     private BeatListener musicBeatListener;
-    private PImage srcImg;
+    public PImage srcImg;
     private PImage blurImg;
     private boolean blinkMode;
     private boolean tintMode;
@@ -40,8 +40,8 @@ class FilterHandler {
     
     public void changeImage(PImage srcImg) {
         //Current memory leak with processing's PImage class; attempt to lessen effect.
-        g.removeCache(srcImg);
-        g.removeCache(blurImg);
+        //g.removeCache(srcImg);
+        //g.removeCache(blurImg);
         this.srcImg = srcImg;
         blurImg = srcImg.get();
         blurImg.filter(BLUR, 6);
