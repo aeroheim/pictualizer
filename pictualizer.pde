@@ -27,12 +27,11 @@ AudioInput in;
 AudioPlayer songPlayer;
 AudioMetaData metaData;
 float volume = -15;
-boolean playerStart = false;
-boolean isPaused = false;
-boolean audioInputMode = false;
-boolean audioPlayerMode = true;
-boolean repeatMode;
-boolean shuffleMode;
+
+/* Control states for audio */
+int audioMode;
+int playerMode;
+boolean playerPaused;
 
 //Queue system/handler for multiple songs.
 ArrayList songQueue;
@@ -77,13 +76,11 @@ boolean blinkMode;
 boolean stretchMode;
 boolean centerMode;
 
-//GUI elements.
-boolean displayMeta;
-boolean optionMode;
-boolean imgMode;
-boolean songMode;
-boolean queueMode;
-boolean modeOn;
+/* Control state & positioning elements for GUI */
+int menuState;
+boolean displayAudioMetaData;
+float[] accessBarTextXPositions;
+String[] accessBarTexts;
 int alphaVal;
 
 //Modifiable variables from GUI elements.
@@ -104,7 +101,7 @@ int xloc;
 int yloc;
 
 
-  //Add parameter to specify how much of a string is needed to be truncated. I need this so that I can have the proper length for the displayMetaData
+  //Add parameter to specify how much of a string is needed to be truncated. I need this so that I can have the proper length for the displayAudioMetaDataData
   //and QUEUE menu.
   //Truncates a String based on its width to given specifications.
   String truncPath(String str)
@@ -148,9 +145,16 @@ int yloc;
   void changeImg(PImage img)
   {
     resizeToScreen(img);
-    filters.changeImage(img);
-    bars.changeImage(img);
     frame.setSize(img.width, img.height);
+    /*
+    while( pixels.length != img.pixels.length )
+        frame.setSize(img.width, img.height);
+    */
+    filters.pauseFilters();
+    filters.changeImage(img);
+    bars.pauseBars();
+    bars.changeImage(img);
+    accessBarTextXPositions = setAccessBarTextPosition(img.width, img.height);
   }
   
   //Calls all necessary commands to load a new song into the pictualizer.
@@ -166,7 +170,6 @@ int yloc;
      songPlayer.setGain(volume);
      songPlayer.play();
      bars.startBars();
-     playerStart = true; 
   }
 
 //HELPFUL ADVICE:
@@ -174,6 +177,90 @@ int yloc;
 //then the spectrum will contain values for frequencies below 22010 Hz, which is the Nyquist frequency (half the sample rate). 
 //If you ask for the value of band number 5, this will correspond to a frequency band centered on 5/1024 * 44100 = 0.0048828125 * 44100 = 215 Hz.
 
+
+    /* 
+     * setAccessBarTextPosition determines the X coordinates that will be used to display the text from the access bar.
+     * The coordinates are stored in the global array accessBarTextXPositions[].
+     * The coordinates will always be scaled based on the width of the screen.
+    */
+    float[] setAccessBarTextPosition(int screenWidth, int screenHeight)
+    {
+        float[] result = new float[accessBarTexts.length];
+        /* Set font size for textWidth() usage */
+        textFont(font, scaleFontSize(font, 10, screenWidth/15));
+        float textWidthOffset = screenWidth/15;
+        float textWidthSpace = screenWidth * 9/10;
+        float textWidthBuffer = textWidth(getLongestStrFromArr(accessBarTexts));
+          
+        /* Determine the X coordinates of the access bar texts to be displayed */
+        float xPosition = textWidthOffset;
+        for( int textNum = 0; textNum < accessBarTexts.length - 2; textNum++ )
+        {
+            float bufferDiff = (xPosition + textWidth(accessBarTexts[textNum])) - (xPosition + textWidthBuffer);
+            result[textNum] = xPosition;
+            xPosition += bufferDiff + textWidthSpace/(accessBarTexts.length - 2);
+        }
+      
+        /* Determine the X coordinates of the last two texts, which will ALWAYS be "---" & "X" */
+        textWidthSpace = screenWidth/30; 
+        xPosition = screenWidth * 37/40;
+        for( int textNum = accessBarTexts.length - 2; textNum < accessBarTexts.length; textNum++ )
+        {
+            result[textNum] = xPosition;
+            xPosition += textWidthSpace;
+        }
+        return result;
+    }
+    
+    /* 
+     * getLongestStrFromArr returns the longest string in a String array.
+    */
+    String getLongestStrFromArr(String[] strArr)
+    {
+        String longestStr = "";
+        for(int i = 0; i < strArr.length; i++)
+            if ( strArr[i].length() > longestStr.length() )
+                longestStr = strArr[i];
+        return longestStr;
+    }
+
+    /* 
+     * setMenuStates handles changes in the menu states accessed from the access bar.
+     * It takes in the current menu state and the new proposed menu state, 
+     * and returns the appropriate new state when necessary.
+    */
+    int setMenuState(int prevState, int newState)
+    {
+        switch(newState)
+        {
+            case MenuStates.DISPLAY: 
+                displayAudioMetaData = !displayAudioMetaData; return prevState;
+            case MenuStates.MINIMIZE:
+                this.frame.setExtendedState(JFrame.ICONIFIED); return prevState;
+            case MenuStates.EXIT:
+                exit();
+            default:
+            {    
+                /* If currently on a menu and selecting another, switch to the new menu */
+                if ( newState != prevState )
+                {
+                    if ( menuState == MenuStates.QUEUE && queueIndex > 9 )
+                        queueCycle = queueIndex - 9;
+                    return newState;
+                }
+                /* Otherwise click the current menu on the access bar again to exit back to main screen */
+                else
+                {
+                    tint(170, 50);
+                    filters.startFilters();
+                    if ( songPlayer.isPlaying() || audioMode == AudioStates.INPUT )
+                            bars.startBars();
+                    return MenuStates.NONE;
+                }
+            }   
+        }
+    }
+    
 void init()
 {
   // to make a frame not displayable, you can
@@ -187,25 +274,32 @@ void init()
 
 void setup()
 { 
-  img = loadImage("revive.jpg");
+  img = loadImage("background.jpg");
   resizeToScreen(img);
   
   size(img.width, img.height, JAVA2D);
   tintMode = true;
   blinkMode = true;
+  blurMode = true;
   stretchMode = true;
   barNum = 9;
   divideBars = true;              
-  displayMeta = true;
-  bassSensitivity = .0075;        
-  midSensitivity = .02;
-  highSensitivity = .06;
-  allSensitivity = 1;
+  displayAudioMetaData = true;
+  
+  menuState = MenuStates.NONE;
+  
+  bassSensitivity = 0.03;        
+  midSensitivity = 0.03;
+  highSensitivity = 0.06;
+  allSensitivity = 3.0;
 
   minim = new Minim(this);
   in = minim.getLineIn();
 
   songPlayer = minim.loadFile("Quest_Complete.mp3");
+  audioMode = AudioStates.OFF;
+  playerMode = AudioStates.NONE;
+  playerPaused = false;
   //songPlayer.pause();
 
   songQueue = new ArrayList<String>();
@@ -216,6 +310,10 @@ void setup()
   filters = new FilterHandler(songPlayer, img);
   bars = new MusicBars(songPlayer, img, font);
   bars.pauseBars();
+  
+  /* Initialize manually drawn GUI elements */
+  accessBarTexts = new String[] {"Image", "Song", "Display", "Options", "Queue", "---", "X"};
+  accessBarTextXPositions = setAccessBarTextPosition(width, height);
 
 
   seeker = new ControlP5(this);
@@ -372,8 +470,10 @@ void dropEvent(DropEvent theDropEvent) {
     img = loadImage(theDropEvent.filePath());
     changeImg(img);
     imgResized = true;
+    bars.startBars();
+    filters.startFilters();
   }
-  else if ( theDropEvent.isFile() && audioPlayerMode ) { 
+  else if ( theDropEvent.isFile() ) { 
     File theFile = theDropEvent.file();
     if ( theFile.isDirectory() ) {
       File[] folder = theDropEvent.listFilesAsArray(theFile, true);
@@ -388,6 +488,7 @@ void dropEvent(DropEvent theDropEvent) {
           queueCycle = queueIndex - 9;
         loadSong((String)songQueue.get(songQueue.size() - 1));
       }
+      audioMode = AudioStates.PLAYER;
     }
     else if ( theDropEvent.filePath().toLowerCase().endsWith(".mp3") || theDropEvent.filePath().toLowerCase().endsWith(".wav") ) {
       songQueue.add(theDropEvent.filePath());
@@ -397,6 +498,7 @@ void dropEvent(DropEvent theDropEvent) {
           queueCycle = queueIndex - 9;
         loadSong((String)songQueue.get(songQueue.size() - 1));
       }
+      audioMode = AudioStates.PLAYER;
     }
   }
 }
@@ -408,20 +510,20 @@ void dropEvent(DropEvent theDropEvent) {
 //******************************************************************************************************
 void draw()
 { 
-  image(img, 0, 0);
+  try { image(img, 0, 0); } catch(ArrayIndexOutOfBoundsException e) { redraw(); }
   filters.applyFilters(); 
   bars.drawBars();
   displayGUI();
-  if ( audioPlayerMode )
+  if ( audioMode == AudioStates.PLAYER )
     checkPlayerStatus();
 }
 
 
 void checkPlayerStatus()
 {
-  if ( !songPlayer.isPlaying() && !isPaused && playerStart && queueIndex - 1 < songQueue.size() && queueIndex > 0)
+  if ( !songPlayer.isPlaying() && !playerPaused && queueIndex - 1 < songQueue.size() && queueIndex > 0)
   {
-    if ( repeatMode )
+    if ( playerMode == AudioStates.REPEAT )
     {
       songPlayer.close();
       minim.stop();
@@ -436,9 +538,8 @@ void checkPlayerStatus()
       metaData = songPlayer.getMetaData();
       songPlayer.setGain(volume);
       songPlayer.play();
-      playerStart = true;
     }
-    else if ( shuffleMode )
+    else if ( playerMode == AudioStates.SHUFFLE )
     { 
       songPlayer.close();
       minim.stop();
@@ -454,7 +555,6 @@ void checkPlayerStatus()
       metaData = songPlayer.getMetaData();
       songPlayer.setGain(volume);
       songPlayer.play();
-      playerStart = true;
     }
     else if ( queueIndex + 1 < songQueue.size() )
     { 
@@ -468,7 +568,6 @@ void checkPlayerStatus()
       metaData = songPlayer.getMetaData();
       songPlayer.setGain(volume);
       songPlayer.play();
-      playerStart = true;
       if ( queueIndex > 9 )
       {
         queueCycle = queueIndex - 9;
@@ -477,22 +576,26 @@ void checkPlayerStatus()
   }
 }
 
-  int scaleFontSize(PFont font, int maxSize, int heightLimit) {
-    int fontSize = 1; 
-    textFont(font, fontSize);
-    int textHeight = (int) textAscent();
-    while ( fontSize < maxSize && textHeight < heightLimit ) {
-      fontSize++;
-      textHeight = (int) textAscent(); 
-    }
-    return fontSize;
+  int scaleFontSize(PFont font, int maxSize, int heightLimit) 
+  {
+      int fontSize = 1; 
+      textFont(font, fontSize);
+      int textHeight = (int) textAscent();
+      while ( fontSize < maxSize && textHeight < heightLimit ) 
+      {
+          fontSize++;
+          textHeight = (int) textAscent(); 
+      }
+      return fontSize;
   }
 
 
 void displayGUI()
 {
-  if ( imgResized )                      //PControl textfields are totally NOT friendly with resizing. Apparently setting them up ONCE after resizing doesn't do anything, so I just compromised
-  {                                      //by looping their new coordinates during the options screen. Shouldn't really cost any significant CPU or FPS loss anyways..
+  //PControl textfields are totally NOT friendly with resizing. Apparently setting them up ONCE after resizing doesn't do anything, so I just compromised
+  //by looping their new coordinates during the options screen. Shouldn't really cost any significant CPU or FPS loss anyways..
+  if ( imgResized )                    
+  {
     barField.setPosition((5 * width)/20 + textWidth(": :   bars"), (20 * height)/32 - textAscent());
     bassField.setPosition((21 * width)/40 + textWidth(": :    bass"), (11 * height)/32 - textAscent() + 1);
     midField.setPosition((21 * width)/40 + textWidth(": :    bass"), (12 * height)/32 - textAscent() + 1);
@@ -510,73 +613,48 @@ void displayGUI()
   }
 
   textFont(font, scaleFontSize(font, 10, height/15));
-  if ( mouseY < textAscent() * 2.5)                        //Reveals the task bar on top of the program.
-  {                                                 //Triggered by movement of the mouse into the top of the program.
-    textAlign(LEFT);
-    fill(50, 50, 50, 50);
-    rect(0, 0, width, textAscent() * 2.5);
-    fill(225, 225, 225, alphaVal);
-    text("Image", width/15, textAscent() * 1.5);
-    text("Song", width/4, textAscent() * 1.5);
-    text("Display", width/2.35, textAscent() * 1.5);
-    text("Options", width/1.65, textAscent() * 1.5);
-    text("Queue", width/1.27, textAscent() * 1.5);
-    text("---", width/1.075, textAscent() * 1.5);
-    text("X", width/1.035, textAscent() * 1.5);
-    if ( alphaVal < 255 )
-    {
-      alphaVal = alphaVal + 15;
-    }  
-    if ( ((mouseX > width/15) && (mouseX < width/15 + textWidth("Image"))) 
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "Image" when it is selected.
-    { 
-      fill(255, 255, 255);
-      text("Image", width/15, textAscent() * 1.5);
+  
+    /*
+     * Access Bar GUI
+     * Draws an access bar on top of the program that appears when the mouse hovers over the top of the program.
+     * The access bar allows access to all of the program's interactive options, namely:
+     * Image, Song, Display(Toggle), Options, Queue, Minimize, and Exit.
+    */
+    if ( mouseY < textAscent() * 2.5)
+    {   
+        /* DEFAULT TEXT ALIGNMENT & SIZE */
+        textAlign(LEFT); textFont(font, scaleFontSize(font, 10, height/15));
+        /* Draw the gray bar first */
+        fill(50, 50, 50, 50); rect(0, 0, width, textAscent() * 2.5);
+             
+        /* Define the height to display the access bar text at */
+        float textHeightPosition = textAscent() * 1.5;
+            
+        for( int i = 0; i < accessBarTextXPositions.length; i++ )
+        {
+            /* Add fade for appearing text */
+            fill(225, 225, 225, alphaVal);
+            text(accessBarTexts[i], accessBarTextXPositions[i], textHeightPosition);
+            
+            /* Highlight the access bar texts if mouse hovers over them */
+            if ( ((mouseY > textAscent() - textDescent()*2) && (mouseY < textDescent() + textAscent()*1.5)) &&
+                 ((mouseX > accessBarTextXPositions[i]) && (mouseX < accessBarTextXPositions[i] + textWidth(accessBarTexts[i]))) )
+            {
+                fill(255, 255, 255);
+                text(accessBarTexts[i], accessBarTextXPositions[i], textHeightPosition); 
+            }               
+        }   
+        /* Increase the alpha value used by text to create a fading in effect */    
+        if ( alphaVal < 255 )
+            alphaVal = alphaVal + 15;    
     }
-    if ( ((mouseX > width/4) && (mouseX < width/4 + textWidth("Song")))
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "Song" when it is selected.
-    {
-      fill(255, 255, 255);
-      text("Song", width/4, textAscent() * 1.5);
-    }
-    if ( ((mouseX > width/2.35) && (mouseX < width/2.35 + textWidth("Display")))
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "Display" when it is selected.
-    {
-      fill(255, 255, 255);
-      text("Display", width/2.35, textAscent() * 1.5);
-    }
-    if ( ((mouseX > width/1.65) && (mouseX < width/1.65 + textWidth("Options")))
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "Option" when it is selected.
-    { 
-      fill(255, 255, 255);
-      text("Options", width/1.65, textAscent() * 1.5);
-    }
-    if ( ((mouseX > width/1.27) && (mouseX < width/1.27 + textWidth("Queue")))
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "Queue" when it is selected.
-    { 
-      fill(255, 255, 255);
-      text("Queue", width/1.27, textAscent() * 1.5);
-    }
-    if ( ((mouseX > width/1.075) && (mouseX < width/1.075 + textWidth("---")))
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "---" when it is selected.
-    {
-      fill(255, 255, 255);
-      text("---", width/1.075, textAscent() * 1.5);
-    }
-    if ( ((mouseX > width/1.035) && (mouseX < width/1.035 + textWidth("X")))   
-      && ((mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent())) )     //Highlights "X" when it is selected.
-    {
-      fill(255, 255, 255);
-      text("X", width/1.035, textAscent() * 1.5);
-    }
-  }
-  if ( mouseY > textAscent() * 2.5 )                      //Fades the task bar on the top of the program.
-  {                                              //Triggered by removal of the mouse from the top of the program.
-    alphaVal = 0;
-  }
+  
+    /* Fades the access bar on top of the screen when the mouse does not hover over it */
+    if ( mouseY > textAscent() * 2.5 )        
+        alphaVal = 0;
 
 
-  if ( audioPlayerMode && playerStart && displayMeta && !modeOn )
+  if ( (audioMode == AudioStates.PLAYER) && displayAudioMetaData && (menuState == MenuStates.NONE) )
   {
     textFont(font2, (width+height)/100);
     textAlign(LEFT);
@@ -603,14 +681,14 @@ void displayGUI()
       fill(175, 175, 175);
       text("volume:", textAscent() * 8.5 + queueNumWidth, textAscent() * 6.9);
       volField.show();  
-      if ( repeatMode )
+      if ( playerMode == AudioStates.REPEAT )
       { 
         fill(255, 255, 255);
         text("re /", textAscent() * 8.5 + queueNumWidth, textAscent() * 7.9);
         fill(175, 175, 175);
         text(" shuff", textAscent() * 8.5 + textWidth("re /") + queueNumWidth, textAscent() * 7.9);
       }
-      else if ( shuffleMode )
+      else if ( playerMode == AudioStates.SHUFFLE )
       {
         fill(175, 175, 175);
         text("re ", textAscent() * 8.5 + queueNumWidth, textAscent() * 7.9);
@@ -627,7 +705,7 @@ void displayGUI()
       volField.hide();
   }
 
-  if ( imgMode )
+  if ( menuState == MenuStates.IMAGE )
   { 
     cp5.hide();
     fill(50, 50, 50, 50);
@@ -644,7 +722,7 @@ void displayGUI()
     text("during realtime visualization.", width/2, height/2 + textAscent()*3);
   }
 
-  if ( songMode )
+  if ( menuState == MenuStates.SONG )
   {
     cp5.hide();
     fill(50, 50, 50, 50);
@@ -663,7 +741,7 @@ void displayGUI()
     textFont(font, 16);  
     text("Modes", (5 * width)/20, (5 * height)/16);
     textFont(font, 10);
-    if ( audioInputMode )
+    if ( audioMode == AudioStates.INPUT )
     { 
       fill(255, 255, 255);
       text(": :  recording device / audio input", (5 * width)/20, (11 * height)/32);
@@ -673,7 +751,7 @@ void displayGUI()
       fill(150, 150, 150);
       text(": :  recording device / audio input", (5 * width)/20, (11 * height)/32);
     }
-    if ( audioPlayerMode )
+    if ( audioMode == AudioStates.PLAYER )
     {
       fill(255, 255, 255);
       text(": :  music player", (5 * width)/20, (12 * height)/32);
@@ -685,21 +763,21 @@ void displayGUI()
     }
   }
 
-  if ( displayMeta && !modeOn )                    //Displays Audio Metadata analyzed by Minim's player.
+  if ( displayAudioMetaData && (menuState == MenuStates.NONE) )                    //Displays Audio Metadata analyzed by Minim's player.
   { 
     fill(255, 255, 255);
     textFont(font, (height + width)/35);
     textAlign(RIGHT, BASELINE);
-    if ( audioPlayerMode && songPlayer.isPlaying() )
+    if ( (audioMode == AudioStates.PLAYER) && songPlayer.isPlaying() )
     {
       text(": :  PLAYING", width - textAscent(), height - textAscent() * 3.5);
     }
-    else if ( playerStart && audioPlayerMode )
+    else if ( audioMode == AudioStates.PLAYER )
     {
       text(": :  PAUSED", width - textAscent(), height - textAscent() * 3.5);
     }
 
-    if ( playerStart && audioPlayerMode )
+    if ( audioMode == AudioStates.PLAYER )
     { 
       seeker.show();
       textFont(font, (height + width)/25);
@@ -752,9 +830,9 @@ void displayGUI()
     seeker.hide();
   }  
 
-  if ( optionMode )                    //Displays the Options menu.
+  if ( menuState == MenuStates.OPTIONS )                    //Displays the Options menu.
   { 
-    //cp5.show();
+    cp5.show();
     fill(50, 50, 50, 50);
     rect(width/5, height/4, (3*width)/5, height/2);
     fill(255, 255, 255);
@@ -903,7 +981,7 @@ void displayGUI()
     text(": :  height", (21 * width)/40, (20 * height)/32);
   }
 
-  if ( queueMode )
+  if ( menuState == MenuStates.QUEUE )
   {
     fill(50, 50, 50, 50);
     rect(width/5, height/4, (3*width)/5, height/2);
@@ -1190,137 +1268,43 @@ void displayGUI()
 
 void mouseClicked()
 { 
-  textFont(font, (width+height)/125);
-  if ( (mouseY > textAscent() - textDescent() * 2) && (mouseY < textAscent() * 1.5 + textDescent()) )        //Click responses for the general screen.
-  {
-    if ( (mouseX > width/15) && (mouseX < width/15 + textWidth("Image") ) )  //Select Image.
+    /* 
+     * Click controller for the Access Bar.
+     * Handles the click events for the following buttons on the access bar:
+     * Image, Song, Display, Options, Queue, Minimize(---), and Exit(X)
+     * FOR NOW: The access bar text height is centered at textAscent() * 1.5
+    */
+    textFont(font, scaleFontSize(font, 10, height/15));
+    if ( (mouseY > textAscent() - textDescent()*2) && (mouseY < textDescent() + textAscent()*1.5) )
     {
-      if ( imgMode )
-      {
-        imgMode = false;
-        modeOn = false;
-        filters.startFilters();
-        if ( songPlayer.isPlaying() || audioInputMode )
-            bars.startBars();
-        tint(170, 50);
-      }
-      else
-      {
-        imgMode = true;
-        optionMode = false;
-        songMode = false;
-        queueMode = false;
-        modeOn = true;
-        filters.pauseFilters();
-        bars.pauseBars();
-      }
-    }
-    if ( (mouseX > width/4) && (mouseX < width/4 + textWidth("Song")) )      //Select Song.
-    {
-      if ( songMode )
-      {
-        songMode = false;
-        modeOn = false;
-        tint(170, 50);
-        filters.startFilters();
-        if ( songPlayer.isPlaying() || audioInputMode ) 
-            bars.startBars();
-      }
-      else
-      {
-        imgMode = false;
-        optionMode = false;
-        songMode = true;
-        queueMode = false;
-        modeOn = true;
-        filters.pauseFilters();
-        bars.pauseBars();
-      }
-    }
-    if ( (mouseX > width/2.35) && (mouseX < width/2.35 + textWidth("Display")) )    //Trigger for activating Audio Metadata by clicking the button.
-    {
-      if ( !displayMeta )
-        displayMeta = true;
-      else
-        displayMeta = false;
-    }
-    if ( (mouseX > width/1.65) && (mouseX < width/1.65 + textWidth("Options")) )    //Trigger for activating the OPTIONS screen.
-    { 
-      if ( !optionMode )
-      {
-        optionMode = true;
-        imgMode = false;
-        songMode = false;
-        queueMode = false;
-        modeOn = true;
-        filters.pauseFilters();
-        bars.pauseBars();
-      }
-      else
-      {
-        optionMode = false;
-        modeOn = false;
-        tint(170, 50);
-        filters.startFilters();
-        if ( songPlayer.isPlaying() || audioInputMode )
-            bars.startBars();
-      }
-    }
-    if ( (mouseX > width/1.27) && (mouseX < width/1.27 + textWidth("Queue")) )      //Trigger for activating the QUEUE screen.
-    {
-      if ( !queueMode )
-      {
-        queueMode = true;
-        imgMode = false;
-        songMode = false;
-        optionMode = false;
-        modeOn = true;
-        if ( queueIndex > 9 )
+        /* Loop and check all possible menu states accessible from the access bar */
+        for( int i = 0; i < accessBarTexts.length; i++ )
         {
-          queueCycle = queueIndex - 9;
+            if ( (mouseX > accessBarTextXPositions[i]) && (mouseX < accessBarTextXPositions[i] + textWidth(accessBarTexts[i])) )
+                menuState = setMenuState(menuState, i);
         }
-        filters.pauseFilters();
-        bars.pauseBars();
-      }
-      else
-      {
-        queueMode = false;
-        modeOn = false;
-        tint(170, 50);
-        filters.startFilters();
-        if ( songPlayer.isPlaying()  || audioInputMode )
-            bars.startBars();
-      }
-    }
-    if ( (mouseX > width/1.075) && (mouseX < width/1.075 + textWidth("---")) )      //Minimizes program if the dash is clicked.
-    {
-      this.frame.setExtendedState(JFrame.ICONIFIED);
-    }
-    if ( (mouseX > width/1.035) && (mouseX < width/1.035 + textWidth("X")) )     //Exits program if the X is clicked.
-    {
-      exit();
-    }
-  }
+    }  
+      
 
-  if ( audioPlayerMode && displayMeta && !modeOn && playerStart )
+
+  if ( (audioMode == AudioStates.PLAYER) && displayAudioMetaData && (menuState == MenuStates.NONE) )
   { 
 
     textFont(font, (width+height)/100);
     if ( (mouseX > textAscent() * 8.5 + queueNumWidth && mouseX < textAscent() * 8.5 + queueNumWidth + textWidth("re / shuff"))
       && ( (mouseY > textAscent() * 6.9 && mouseY < textAscent() * 8.9 )) )
     { 
-      if ( repeatMode )
+      if ( playerMode == AudioStates.REPEAT )
       {
-        repeatMode = false;
-        shuffleMode = true;
+        playerMode = AudioStates.SHUFFLE;
       }
-      else if ( shuffleMode )
+      else if ( playerMode == AudioStates.SHUFFLE )
       {
-        shuffleMode = false;
+        playerMode = AudioStates.NONE;
       }
       else
       {
-        repeatMode = true;
+        playerMode = AudioStates.REPEAT;
       }
     }
     textFont(font, (width+height)/35);
@@ -1328,16 +1312,16 @@ void mouseClicked()
     {
       if ( (mouseY > height - textAscent() * 4.5 + textDescent() ) && (mouseY < height - textAscent() * 3.5 ) )
       { 
-        songPlayer.pause();
+        songPlayer.pause(); playerPaused = true;
         bars.pauseBars();
-        isPaused = true;
       }
     }
     else if ( (mouseX > width - textAscent() - textWidth(": :  PAUSED")) && (mouseX < width - textAscent()) )
     {
       if ( (mouseY > height - textAscent() * 4.5 + textDescent() ) && (mouseY < height - textAscent() * 3.5 ) )
       {
-        if ( !isPaused )
+        /* If the player has finished playing the last song, rewind the last song if PAUSED is pressed again */
+        if ( !playerPaused )
         { 
           songPlayer.pause();
           songPlayer.play();
@@ -1345,9 +1329,9 @@ void mouseClicked()
         }
         else
         {
+          playerPaused = false;
           songPlayer.play();
           bars.startBars();
-          isPaused = false;
         }
       }
     }
@@ -1358,7 +1342,7 @@ void mouseClicked()
     { 
       if ( queueIndex - 1 > 0 )
       {
-        if ( shuffleMode )
+        if ( playerMode == AudioStates.SHUFFLE )
         { 
           songPlayer.close();
           queueIndex = round(random(1, songQueue.size()));
@@ -1379,14 +1363,14 @@ void mouseClicked()
         metaData = songPlayer.getMetaData();
         songPlayer.setGain(volume);
         songPlayer.play();
-        playerStart = true;
+        bars.startBars();
       }
     }
     if ( ((mouseX > textAscent() * 6 + queueNumWidth/2) && (mouseX < textAscent() * 6 + textWidth(">>") + queueNumWidth/2)) && ( (mouseY < textAscent() * 7.5) && (mouseY > textAscent() * 6.5 )) )
     {
       if ( queueIndex < songQueue.size() )
       { 
-        if ( shuffleMode )
+        if ( playerMode == AudioStates.SHUFFLE )
         { 
           songPlayer.close();
           queueIndex = round(random(1, songQueue.size()));
@@ -1407,12 +1391,12 @@ void mouseClicked()
         metaData = songPlayer.getMetaData();
         songPlayer.setGain(volume);
         songPlayer.play();
-        playerStart = true;
+        bars.startBars();
       }
     }
   }
 
-  if ( optionMode )           //Click responses for the configuration screen.
+  if ( menuState == MenuStates.OPTIONS )           //Click responses for the configuration screen.
   { 
     cp5.show();
     textFont(font, 10);
@@ -1526,16 +1510,15 @@ void mouseClicked()
     }
   }
 
-  if ( songMode )
+  if ( menuState == MenuStates.SONG )
   { 
     if ( (mouseX > (5 * width)/20) && (mouseX < (5 * width)/20 + textWidth(": :  recording device / audio input") ) )
     {
       if ( (mouseY > (21 * height)/64) && (mouseY < (22 * height)/64) )
       {
-        if ( audioInputMode )
+        if ( audioMode == AudioStates.INPUT )
         {
-          audioInputMode = false;
-          audioPlayerMode = true;
+          audioMode = AudioStates.PLAYER;
           bars.changeSource(songPlayer);
           filters.changeSource(songPlayer, 15);
           //Determine if bars needed to be paused upon exiting audio input mode.
@@ -1545,8 +1528,7 @@ void mouseClicked()
         }
         else
         {
-          audioInputMode = true;
-          audioPlayerMode = false;
+          audioMode = AudioStates.INPUT;
           bars.changeSource(in);
           filters.changeSource(in, 20);
           songPlayer.pause();
@@ -1554,18 +1536,16 @@ void mouseClicked()
       }
       if ( (mouseY > (23 * height)/64) && (mouseY < (97 * height)/256) )
       {
-        if ( audioPlayerMode )
+        if ( audioMode == AudioStates.PLAYER )
         {
-          audioPlayerMode = false;
-          audioInputMode = true;
+          audioMode = AudioStates.INPUT;
           bars.changeSource(in);
           filters.changeSource(in, 20);
           songPlayer.pause();
         }
         else
         {
-          audioPlayerMode = true;
-          audioInputMode = false;
+          audioMode = AudioStates.PLAYER;
           bars.changeSource(songPlayer);
           filters.changeSource(songPlayer, 15);
           //Determine if bars needed to be paused upon exiting audio input mode.
@@ -1588,7 +1568,7 @@ void mouseClicked()
     cp5.hide();
   }
 
-  if ( queueMode )
+  if ( menuState == MenuStates.QUEUE )
   {    
     if ( mouseX > width/4.3 && mouseX < width/4.1 )
     {
@@ -1630,7 +1610,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1661,7 +1640,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1692,7 +1670,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1723,7 +1700,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1754,7 +1730,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1785,7 +1760,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1816,7 +1790,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1847,7 +1820,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -1878,7 +1850,6 @@ void mouseClicked()
           metaData = songPlayer.getMetaData();
           songPlayer.setGain(volume);
           songPlayer.play();
-          playerStart = true;
         }
         if ( mouseX > width/3.7 && mouseX < width/3.7 + textWidth("X") )
         {
@@ -2047,8 +2018,11 @@ void controlEvent(ControlEvent theEvent)
       imgResized = true;
       resizeHeightField.setText(""+img.height);
       img = img.get();
+      bars.pauseBars();
       bars.changeImage(img);
+      filters.pauseFilters();
       filters.changeImage(img);
+      accessBarTextXPositions = setAccessBarTextPosition(img.width, img.height);
     }
   }
   if ( theEvent.getName().equals(resizeHeightField.getName()) )
@@ -2068,8 +2042,11 @@ void controlEvent(ControlEvent theEvent)
       imgResized = true;
       resizeWidthField.setText(""+img.width);
       img = img.get();
+      bars.pauseBars();
       bars.changeImage(img);
+      filters.pauseFilters();
       filters.changeImage(img);
+      accessBarTextXPositions = setAccessBarTextPosition(img.width, img.height);
     }
   }
   if ( theEvent.getName().equals(seekField.getName()) )
@@ -2111,4 +2088,3 @@ void stop()          //Always stop Minim when the program is finished.
   minim.stop();
   super.stop();
 }
-

@@ -8,21 +8,23 @@
 
 class MusicBars {
   
+  public static final int STRETCH_MODE = 0;
+  public static final int CENTER_MODE = 1;
+  public static final int DEBUG_FONT_SIZE = 6;
+  private static final float SMOOTH = 0.85;
+  
   private PImage srcImg;
   private PFont font;
   private int fontSize;
+  
   private AudioSource source;
   private FFT audioData;
+  private int[] amps;
+  
+  private int mode;
   private boolean debugMode;
   private boolean display;
-  private int[] amps;
-  private int[] debug;
-  private int[] debugFrame;
-  private int debugFrameCount;
-  private double debugDec;
-  public static final int STRETCH_MODE = 0;
-  public static final int CENTER_MODE = 1;
-  private int mode;
+  
   private float bass;
   private float mid;
   private float hi;
@@ -32,28 +34,27 @@ class MusicBars {
       this.source = source;
       this.font = font;
       srcImg = img;
+      srcImg.loadPixels();
       audioData = new FFT(source.bufferSize(), source.sampleRate());
       audioData.window(FFT.HAMMING);
       mode = STRETCH_MODE;
       debugMode = true;
       display = true;
       amps = new int[21];
-      debug = new int[amps.length];
-      debugFrame = new int[amps.length];
-      debugFrameCount = 0;
-      debugDec = 1;
-      bass = 0.005;
-      mid = 0.020;
-      hi = 0.060;
-      all = 1.000;
+      for(int i = 0; i < amps.length; i++)
+          amps[i] = 0;
+      bass = 0.03;
+      mid = 0.03;
+      hi = 0.04;
+      all = 3.0;
       fontSize = getScaledFontSize();
   }
   
   
   private int getScaledFontSize() {
-      int tempSize = 20;
+      int tempSize = DEBUG_FONT_SIZE;
       textFont(font, tempSize);
-      while ( textWidth("0000 - 0000 Hz") > width/amps.length - width/200 || tempSize > 9 ) {
+      while ( textWidth("0000 - 0000 Hz") > srcImg.width/amps.length - srcImg.width/200 ) {
           tempSize--;
           textFont(font, tempSize);
       }
@@ -68,10 +69,12 @@ class MusicBars {
   }
   
   public void changeImage(PImage img) {
-      //Current memory leak with Processing's PImage class; attempt to lessen effect.
-      g.removeCache(srcImg);
       srcImg = img;
       fontSize = getScaledFontSize();
+      srcImg.loadPixels();
+      /* Wait for frame to update before altering pixels; done to avoid ArrayIndexOutOfBounds exception */
+      //while ( srcImg.pixels.length != pixels.length )
+         // frame.setSize(img.width, img.height);
   }
   
   public void startBars() {
@@ -88,8 +91,6 @@ class MusicBars {
   
   public void setNumBars(int numBars) {
       amps = new int[numBars];
-      debug = new int[amps.length];
-      debugFrame = new int[amps.length];
       fontSize = getScaledFontSize();
   }
   
@@ -141,83 +142,109 @@ class MusicBars {
               drawCenterBars();
   }
   
+  
+  private float getMaxAmp(int minFreq, int maxFreq)
+  {
+      float maxAmp = 0.0;
+      float amp = 0.0;
+      for(int i = minFreq; i < maxFreq; i++)
+          if ( (amp = audioData.calcAvg(i, i)) > maxAmp )
+              maxAmp = amp;
+      return maxAmp;
+  }
+  
+  
+  //***********  SET A LIMIT ON NUMBARS FOR WHEN BARS BECOME TOO SMALL AND DISAPPEAR  *****************//
   private void drawStretchBars() {
       audioData.forward(source.mix);
-      int barWidth = width/amps.length - width/200;
+      int barWidth = width/amps.length - width/150;
       if ( debugMode ) {
           textFont(font, fontSize);
           textAlign(LEFT); 
       }
+      int divider;
+      loadPixels();
       for ( int i = 0; i < amps.length; i++ ) {
           //divider keeps all 3 ranges in their respective frequencies.
-          int divider = i % (amps.length / 3);
-          //BASS Range: 0Hz - 300Hz
+          divider = i % (amps.length / 3);
+          //BASS Range: 0Hz - 450Hz
           if ( i < amps.length/3 ) { 
-              amps[i] = (int) (all * bass * height * audioData.calcAvg((900/amps.length)*divider, (900/amps.length)*(divider+1)));
+              amps[i] = (int) (amps[i] * SMOOTH + (all * bass * height * log(audioData.calcAvg(((450*3)/amps.length)*divider, ((450*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              //amps[i] = (int) (all * bass * height * log(audioData.calcAvg((900/amps.length)*divider, (900/amps.length)*(divider+1))));
               if ( debugMode )
                   text(""+((900/amps.length)*divider)+"- "+((900/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
           }
-          //MID Range: 300Hz - 1200Hz          
+          //MID Range: 450Hz - 1350Hz          
           else if ( i >= amps.length/3 && i < (2 * amps.length)/3 ) {
-              amps[i] = (int) (all * mid * height * audioData.calcAvg(300+(2700/amps.length)*divider, 300+(2700/amps.length)*(divider+1)));
+              amps[i] = (int) (amps[i] * SMOOTH + (all * mid * height * log(audioData.calcAvg(450+((900*3)/amps.length)*divider, 450+((900*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              //amps[i] = (int) (all * mid * height * audioData.calcAvg(300+(1800/amps.length)*divider, 300+(1800/amps.length)*(divider+1)));
               if ( debugMode )
-                  text(""+(300+(2700/amps.length)*divider)+"- "+(300+(2700/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
+                  text(""+(300+(1800/amps.length)*divider)+"- "+(300+(1800/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
           }
-          //HI Range: 1200Hz - 6000Hz
+          //HI Range: 1350Hz - 2400Hz
           else {
-              amps[i] = (int) (all * hi * height * audioData.calcAvg(1200+(15000/amps.length)*divider, 1200+(15000/amps.length)*(divider+1)));
+              amps[i] = (int) (amps[i] * SMOOTH + (all * hi * height * log(audioData.calcAvg(1350+((1050*3)/amps.length)*divider, 1350+((1050*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              //amps[i] = (int) (all * hi * height * audioData.calcAvg(900+(4500/amps.length)*divider, 900+(4500/amps.length)*(divider+1)));
               if ( debugMode )
-                  text(""+(1200+(15000/amps.length)*divider)+"- "+(1200+(15000/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
+                  text(""+(900+(4500/amps.length)*divider)+"- "+(900+(4500/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
           }
           
-          if ( amps[i] > height )
-              amps[i] = height;
-              
-          /*
-          //Draw the extended debug text.
-          if ( debugMode ) {
-              if ( amps[i] > debug[i] ) {
-                  debug[i] = amps[i];   
-                  debugFrame[i] = frameCount;
-                  debugDec = 2;
+          if ( amps[i] > height ) amps[i] = height;
+          else if ( amps[i] < 0 ) amps[i] = 0;
+          //copy(srcImg, (width/amps.length+1) * i, height, barWidth, -amps[i], (width/amps.length+1) * i, height, barWidth, -amps[i]);
+          for( int j = ( (srcImg.height-amps[i]-1) * srcImg.width ); j < srcImg.height * srcImg.width - 1; j += srcImg.width )
+              try { 
+                  int coordinate = j + (((srcImg.width/amps.length) + 1) * i);
+                  if ( i == amps.length - 1 )
+                      System.arraycopy(srcImg.pixels, coordinate, pixels, coordinate, srcImg.width - ((srcImg.width/amps.length + 1) * i)); 
+                  else
+                      System.arraycopy(srcImg.pixels, coordinate, pixels, coordinate, barWidth); 
               }
-              if ( frameCount - debugFrame[i] > 5 ) {
-                  if ( debugDec < height/25 )
-                      debugDec += debugDec;
-                  debug[i] -= debugDec;
-              }
-              //Draw the line.
-              stroke(215, 215, 215);
-              noTint();
-              line((width/amps.length+1) * i, height - debug[i], (width/amps.length+1) * i + barWidth - 1, height - debug[i]);
-              tint(90, 60);
-              noStroke();
-          }
-          */
-          //Draw the bars.
-          copy(srcImg, (width/amps.length+1) * i, height, barWidth, -amps[i], (width/amps.length+1) * i, height, barWidth, -amps[i]);
+              catch( ArrayIndexOutOfBoundsException e ) { redraw(); }              
       }
+      updatePixels();
+      
+      if ( debugMode )
+          for ( int i = 0; i < amps.length; i++ )
+          {
+              divider = i % (amps.length / 3);
+              if ( i < amps.length/3 ) text(""+((900/amps.length)*divider)+"- "+((900/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
+              else if ( i >= amps.length/3 && i < (2 * amps.length)/3 ) text(""+(300+(1800/amps.length)*divider)+"- "+(300+(1800/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
+              else text(""+(900+(4500/amps.length)*divider)+"- "+(900+(4500/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
+          }
   }
   
   private void drawCenterBars() {
       audioData.forward(source.mix);
-      int barWidth = (3*width)/(5*amps.length) - width/200;
+      int barWidth = (3*width)/(5*amps.length) - width/150;
+      int divider;
+      loadPixels();
       for ( int i = 0; i < amps.length; i++ ) {
           //divider keeps all 3 ranges in their respective frequencies.
-          int divider = i % (amps.length / 3);
-          //BASS Range: 0Hz - 300Hz
+          divider = i % (amps.length / 3);
+          //BASS Range: 0Hz - 450Hz
           if ( i < amps.length/3 ) 
-              amps[i] = (int) (.6 * all * bass * height * audioData.calcAvg((900/amps.length)*divider, (900/amps.length)*(divider+1)));
-          //MID Range: 300Hz - 1200Hz          
+              amps[i] = (int) (amps[i] * SMOOTH + (.6 * all * bass * height * log(audioData.calcAvg(((450*3)/amps.length)*divider, ((450*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              //amps[i] = (int) (.6 * all * bass * height * audioData.calcAvg((900/amps.length)*divider, (900/amps.length)*(divider+1)));
+          //MID Range: 450Hz - 1350Hz          
           else if ( i >= amps.length/3 && i < (2 * amps.length)/3 ) 
-              amps[i] = (int) (.6 * all * mid * height * audioData.calcAvg(300+(2700/amps.length)*divider, 300+(2700/amps.length)*(divider+1)));
-          //HI Range: 1200Hz - 6000Hz
+              amps[i] = (int) (amps[i] * SMOOTH + (.6 * all * mid * height * log(audioData.calcAvg(450+((900*3)/amps.length)*divider, 450+((900*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              //amps[i] = (int) (.6 * all * mid * height * audioData.calcAvg(300+(2700/amps.length)*divider, 300+(2700/amps.length)*(divider+1)));
+          //HI Range: 1350Hz - 2400Hz
           else 
-              amps[i] = (int) (.6 * all * hi * height * audioData.calcAvg(1200+(15000/amps.length)*divider, 1200+(15000/amps.length)*(divider+1)));
-          if ( amps[i] > height * .6 )
-              amps[i] = (int) (height * .6);
-          copy(srcImg, width/5+((3*width)/(5*amps.length)+1)*i, height * 4/5, barWidth, -amps[i], width/5+((3*width)/(5*amps.length)+1)*i, height * 4/5, barWidth, -amps[i]);
+              amps[i] = (int) (amps[i] * SMOOTH + (.6 * all * hi * height * log(audioData.calcAvg(1350+((1050*3)/amps.length)*divider, 1350+((1050*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              //amps[i] = (int) (.6 * all * hi * height * audioData.calcAvg(1200+(15000/amps.length)*divider, 1200+(15000/amps.length)*(divider+1)));
+          if ( amps[i] > height * .6 ) amps[i] = (int) (height * .6);
+          else if ( amps[i] < 0 ) amps[i] = 0;
+          //copy(srcImg, width/5+((3*width)/(5*amps.length)+1)*i, height * 4/5, barWidth, -amps[i], width/5+((3*width)/(5*amps.length)+1)*i, height * 4/5, barWidth, -amps[i]);
+          for( int j = (int)(( (((4.0/5.0) * srcImg.height) - amps[i] - 1) * srcImg.width + ((1.0/5.0)*srcImg.width) )); j < (int)(((4.0/5.0)*srcImg.height) * srcImg.width - ((1.0/5.0)*srcImg.width)); j += srcImg.width )
+              try { 
+                  int coordinate = (int)(j + (((((3.0/5.0)*srcImg.width)/amps.length)) * i));
+                  System.arraycopy(srcImg.pixels, coordinate, pixels, coordinate, barWidth); 
+              }
+              catch( ArrayIndexOutOfBoundsException e ) { redraw(); }              
       }
+      updatePixels();
   }
        
 }

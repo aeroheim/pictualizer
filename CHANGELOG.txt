@@ -1,3 +1,45 @@
+
+pictualizer v0.6.0 - updated 9/3/13
+===================================
+
+ * new image copying algorithm - massive FPS/performance gain
+
+ * implemented a moving average on the FFT bars - much smoother animation now
+
+ * added a log() on top of FFT-processed amplitudes
+
+ * adjusted bar & FFT frequency ranges to the following:
+
+   - LOW: 0 - 450 Hz
+   
+   - MID: 450 - 1350 Hz
+   
+   - HIGH: 1350 - 2400 Hz
+
+ * removed additional junk global variables in pictualizer.pde
+
+ * rewrote some GUI code for better performance & readability
+
+ * added MenuStates & AudioStates to hold state/control related constants for main program,
+
+   since processing doesn't allow java enums!
+
+
+ **** WIP ****
+ 
+ * rewrite all GUI code in pictualizer.pde for better readability & performance
+
+ * fix incorrect GUI text placement due to new controlP5 library
+
+ * add new GUI design + changes, including album art display (requires custom ID3 tag reader)
+
+ * fixing A LOT of bugs; just feeling too lazy to write them all down!
+
+ * expecting big changes in the future, but slow progress due to school currently :(
+
+
+
+
 pictualizer v0.5.0 - updated 2/4/13
 ===================================
 
