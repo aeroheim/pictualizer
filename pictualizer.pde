@@ -1,12 +1,22 @@
 import ddf.minim.*;
 import ddf.minim.analysis.*;
-import java.awt.MouseInfo;        //MouseInfo and Point are the classes imported in order to implement smooth window dragging. Doing it with frame.getX() and Y with mouseX and mouseY
-import java.awt.Point;            //causes some weird feedback loop that causes the image to shake violently instead of smoothly dragging. Found here: https://forum.processing.org/topic/global-mouse.
-import javax.swing.*;             //Swing GUI from java imported ONLY to help minimize the program. 
-import java.lang.*;               //Lang lib used for verifying file input from the drag and drop.
+
+/* MouseInfo and Point are the classes imported in order to implement smooth window dragging. https://forum.processing.org/topic/global-mouse. */
+import java.awt.MouseInfo;
+import java.awt.Point;
+
+/* Swing imported to allow for program to minimize. */
+import javax.swing.*;
+
+/* Lang lib used for verifying file input from the drag and drop. */
+import java.lang.*;
 import java.io.File;
-import controlP5.*;               //ControlP5 GUI Library from Processing's site used for creating text input boxes in Config screen.
-import sojamo.drop.*;             //SDrop lib used to incorporate drag and drop file input. Very handy.
+
+/* ControlP5 GUI Library from Processing's site used for creating text input boxes in Config screen. */
+import controlP5.*;
+
+/* SDrop lib used to incorporate drag and drop file input. */
+import sojamo.drop.*;
 
 
 //TO DO LIST:
@@ -21,7 +31,7 @@ import sojamo.drop.*;             //SDrop lib used to incorporate drag and drop 
 
 
 
-//Reading and processing input songs.
+/* Reading and processing music. */
 Minim minim;
 AudioInput in;
 AudioPlayer songPlayer;
@@ -33,7 +43,7 @@ int audioMode;
 int playerMode;
 boolean playerPaused;
 
-//Queue system/handler for multiple songs.
+/* Queueing support for multiple songs */
 ArrayList songQueue;
 int queueIndex;
 int queueCycle;
@@ -41,7 +51,7 @@ int queueNumWidth = 0;
 
 MusicBars bars;
 
-//ControlP5 GUI elements (all textfields).
+/* ControlP5 GUI elements. */
 ControlP5 cp5;
 ControlP5 seeker;
 Textfield seekField;
@@ -55,24 +65,24 @@ Textfield allField;
 Textfield resizeWidthField;
 Textfield resizeHeightField;
 
-//Drag and drop core element.
+/* Drag and drop core element. */
 SDrop drop;
 PImage img;
 PImage filterImage;
 boolean imgResized = false;
 
-//Fonts used.
+/* Fonts used. */
 PFont font;
 PFont font2;
 
-//Filters for visualization.
+/* Image filters for visualization. */
 FilterHandler filters;
 boolean blurMode;
 boolean tintMode;
 boolean greyTintMode;
 boolean blinkMode;
 
-//Modes of visualization.
+/* Modes of visualization. */
 boolean stretchMode;
 boolean centerMode;
 
@@ -83,7 +93,7 @@ float[] accessBarTextXPositions;
 String[] accessBarTexts;
 int alphaVal;
 
-//Modifiable variables from GUI elements.
+/* Modifiable visualization variables. */
 int barNum;
 boolean divideBars;
 float bassSensitivity;
@@ -92,7 +102,7 @@ float highSensitivity;
 float allSensitivity;
 boolean alwaysTop;
 
-//Dragging functions for window movement.
+/* Dragging functions for window movement. */
 Point mouse;                    
 int xPos, yPos;
 int helper;
@@ -451,7 +461,7 @@ void setup()
   seeker.hide();
 
   drop = new SDrop(this);
-  //Allows the frame to be resized.
+  /* Allows the frame to be resized. */
   frame.setResizable(true);
   noStroke();
   smooth();

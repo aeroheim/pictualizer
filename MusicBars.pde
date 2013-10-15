@@ -1,4 +1,3 @@
-
 /**
  *  class: MusicBar
  *  draws all visualization bars in visualizer using FFT data from
@@ -46,7 +45,7 @@ class MusicBars {
       bass = 0.03;
       mid = 0.03;
       hi = 0.04;
-      all = 3.0;
+      all = 2.0;
       fontSize = getScaledFontSize();
   }
   
@@ -153,7 +152,6 @@ class MusicBars {
       return maxAmp;
   }
   
-  
   //***********  SET A LIMIT ON NUMBARS FOR WHEN BARS BECOME TOO SMALL AND DISAPPEAR  *****************//
   private void drawStretchBars() {
       audioData.forward(source.mix);
@@ -169,21 +167,21 @@ class MusicBars {
           divider = i % (amps.length / 3);
           //BASS Range: 0Hz - 450Hz
           if ( i < amps.length/3 ) { 
-              amps[i] = (int) (amps[i] * SMOOTH + (all * bass * height * log(audioData.calcAvg(((450*3)/amps.length)*divider, ((450*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              amps[i] = (int) (amps[i] * SMOOTH + (all * bass * height * (log(audioData.calcAvg(((450*3)/amps.length)*divider, ((450*3)/amps.length)*(divider+1)))/log(2))) * (1 - SMOOTH));
               //amps[i] = (int) (all * bass * height * log(audioData.calcAvg((900/amps.length)*divider, (900/amps.length)*(divider+1))));
               if ( debugMode )
                   text(""+((900/amps.length)*divider)+"- "+((900/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
           }
           //MID Range: 450Hz - 1350Hz          
           else if ( i >= amps.length/3 && i < (2 * amps.length)/3 ) {
-              amps[i] = (int) (amps[i] * SMOOTH + (all * mid * height * log(audioData.calcAvg(450+((900*3)/amps.length)*divider, 450+((900*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              amps[i] = (int) (amps[i] * SMOOTH + (all * mid * height * (log(audioData.calcAvg(450+((900*3)/amps.length)*divider, 450+((900*3)/amps.length)*(divider+1)))/log(2))) * (1 - SMOOTH));
               //amps[i] = (int) (all * mid * height * audioData.calcAvg(300+(1800/amps.length)*divider, 300+(1800/amps.length)*(divider+1)));
               if ( debugMode )
                   text(""+(300+(1800/amps.length)*divider)+"- "+(300+(1800/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
           }
           //HI Range: 1350Hz - 2400Hz
           else {
-              amps[i] = (int) (amps[i] * SMOOTH + (all * hi * height * log(audioData.calcAvg(1350+((1050*3)/amps.length)*divider, 1350+((1050*3)/amps.length)*(divider+1)))) * (1 - SMOOTH));
+              amps[i] = (int) (amps[i] * SMOOTH + (all * hi * height * (log(audioData.calcAvg(1350+((1050*3)/amps.length)*divider, 1350+((1050*3)/amps.length)*(divider+1)))/log(2))) * (1 - SMOOTH));
               //amps[i] = (int) (all * hi * height * audioData.calcAvg(900+(4500/amps.length)*divider, 900+(4500/amps.length)*(divider+1)));
               if ( debugMode )
                   text(""+(900+(4500/amps.length)*divider)+"- "+(900+(4500/amps.length)*(divider+1))+"Hz", (width/amps.length+1)*i, height - amps[i] - 2);
