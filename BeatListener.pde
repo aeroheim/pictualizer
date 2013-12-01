@@ -1,9 +1,8 @@
-
-/**
+/*
  *  class: BeatListener
- *  transfers audio buffer information from song/microphone input to 
- *  a BeatDetect object
-*/
+ *  connects audio buffer information from song/microphone input to 
+ *  a BeatDetect object.
+ */
 
 class BeatListener implements AudioListener {
   
