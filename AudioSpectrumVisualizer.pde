@@ -16,15 +16,16 @@ class AudioSpectrumVisualizer
     float maxSpectrumHeight;
     
     float AMP_BOOST;
-    float[] sensitivity;
+    float[] sensitivities;
     
-    int[] ranges;
     int[] amps;
+    int[] freqRanges;
+    int numSections;   
     int dividerWidth;
     int barWidth;
     boolean display;
 
-    AudioSpectrumVisualizer(float beginX, float endX, float beginY, float endY, int numBars)
+    AudioSpectrumVisualizer(float beginX, float endX, float beginY, float endY, int numSections, int numBars)
     {
         /* Initialize display values. */
         spectrumX = beginX;
@@ -34,17 +35,18 @@ class AudioSpectrumVisualizer
         display = true;
         
         /* Initialize default values for adjustable variables. */
+        this.numSections = numSections;
         dividerWidth = 0;
         SMOOTH_CONST = 0.0;
-        bass = 1.0;
-        mid = 1.0;
-        hi = 1.0;
         AMP_BOOST = 1.0;
         
+        /* Initialize the sensitivity array. */
+        sensitivities = new float[numSections];
+        for(int i = 0; i < sensitivities.length; i++)
+            sensitivities[i] = 1.0;
+        
         /* Initialize the FFT-amps array. */
-        amps = new int[numBars];
-        for(int i = 0; i < amps.length; i++)
-            amps[i] = 0;
+        setNumBars(numBars);
             
         barWidth = (int) (spectrumWidth / amps.length) - dividerWidth;
     }
@@ -70,19 +72,30 @@ class AudioSpectrumVisualizer
         barWidth = (int) (spectrumWidth / amps.length) - dividerWidth;
     }
     
+    void section(int[] freqRanges)
+    {
+        numSections = freqRanges.length;
+        this.freqRanges = new int[freqRanges.length];
+        for(int i = 0; i < freqRanges.length; i++)
+            this.freqRanges[i] = freqRanges[i];
+    }
+    
     void draw()
     {
         if ( display )
         {
             fft.forward(input.mix);
-            int fftBassRange = (bassRange * 3) / amps.length;
-            int fftMidRange = bassRange + ((midRange - bassRange)* 3) / amps.length;
-            int fftHiRange = midRange + (hiRange * 3) / amps.length;
             for(int i = 0; i < amps.length; i++)
             {
-                int divider = i % (amps.length / 3); 
-                if ( i < (amps.length / 3) )
-                    amps[i] = smoothAmp(amps[i], modifyAmp(fft.calcAvg(fftBassRange * divider, fftBaseRange * (divider + 1)
+                int divider = i % (amps.length / numSections);
+                print("i is : "+i+"\n");
+                print("divider is: "+divider+"\n");
+                float freqRange = freqRanges[divider] * numSections;
+                float ampMultiplier = AMP_BOOST * sensitivities[divider] * maxSpectrumHeight;
+                // EXPLOIT INTEGER DIVISION TO GET YOUR CORRECT SENSITIVITY INDEX; I THINK IT WILL WORK
+                amps[i] = (int) checkAmpHeight(smoothAmp(amps[i], ampMultiplier * modifyAmp(fft.calcAvg(freqRange * divider, freqRange * (divider + 1)))));
+                fill(255, 255, 255);
+                rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
             }
         } 
     }
@@ -97,12 +110,14 @@ class AudioSpectrumVisualizer
     }
     
     /*
-     * Check if the amp is within max height range. If not, return the max height allowed instead.
+     * Check if the amp is within range. If not, return the corresponding bounded range value.
      */
     float checkAmpHeight(float amp)
     {
         if ( abs(amp) > maxSpectrumHeight )
             return maxSpectrumHeight;
+        else if ( abs(amp) < 0 )
+            return 0;
         return amp;
     }
     
@@ -120,11 +135,11 @@ class AudioSpectrumVisualizer
     *  standard setters/mutators
     */
     
-    void setRange(int bassRange, int midRange, int hiRange)
+    void setRanges(int[] freqRanges)
     {
-        this.bassRange = bassRange;
-        this.midRange = midRange;
-        this.hiRange = hiRange; 
+        this.freqRanges = new int[freqRanges.length];
+        for(int i = 0; i < freqRanges.length; i++)
+            this.freqRanges[i] = freqRanges[i];
     }
     
     void setNumBars(int numBars)
@@ -145,19 +160,16 @@ class AudioSpectrumVisualizer
         this.SMOOTH_CONST = SMOOTH_CONST; 
     }
     
-    void setBass(float bass)
+    void setSensitivity(int section, float sensitivity)
     {
-        this.bass = bass; 
+        sensitivities[section] = sensitivity;
     }
     
-    void setMid(float mid)
+    void setSensitivities(float[] sensitivities)
     {
-        this.mid = mid; 
-    }
-    
-    void setHi(float hi)
-    {
-        this.hi = hi; 
+        this.sensitivities = new float[sensitivities.length];
+        for(int i = 0; i < sensitivities.length; i++)
+            this.sensitivities[i] = sensitivities[i]; 
     }
     
     void setAmpBoost(float AMP_BOOST)
@@ -169,19 +181,14 @@ class AudioSpectrumVisualizer
     *  standard getters/accessors
     */
     
-    float getBass()
+    float getSensitivity(int section)
     {
-        return bass;
+        return sensitivities[section];
     }
     
-    float getMid()
+    float[] getSensitivities()
     {
-        return mid; 
-    }
-    
-    float getHi()
-    {
-        return hi; 
+        return sensitivities; 
     }
     
     float getAmpBoost()

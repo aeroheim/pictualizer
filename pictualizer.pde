@@ -11,6 +11,7 @@ AudioPlayer player;
 
 /* Visualizations. */
 ScrollingAudioWaveform scrollingVisualizer;
+AudioSpectrumVisualizer spectrumVisualizer;
 
 
 /*
@@ -42,6 +43,14 @@ void setup()
     scrollingVisualizer = new ScrollingAudioWaveform(width / 5.0, (4.0 * width) / 5.0, height / 2.0, height, height / 3);
     scrollingVisualizer.listen(in);
     scrollingVisualizer.setTimeOffset(18);
+    
+    spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21);   
+    spectrumVisualizer.listen(in);
+    spectrumVisualizer.setSmooth(0.85);
+    int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
+    float[] spectrumSensitivities = new float[] {0.06, 0.06, 0.08};
+    spectrumVisualizer.section(spectrumFreqRanges);
+    spectrumVisualizer.setSensitivities(spectrumSensitivities);    
 }
 
 
@@ -50,6 +59,7 @@ void draw()
     image(img, 0, 0);
     tint(180, 150);
     scrollingVisualizer.draw();
+    spectrumVisualizer.draw();
 }
 
 void drawMain()
