@@ -83,20 +83,28 @@ class AudioSpectrumVisualizer
     void draw()
     {
         if ( display )
-        {
+        {  
+            noStroke();
             fft.forward(input.mix);
+            float prevFreq = 0;
             for(int i = 0; i < amps.length; i++)
             {
                 int divider = i % (amps.length / numSections);
-                print("i is : "+i+"\n");
-                print("divider is: "+divider+"\n");
-                float freqRange = freqRanges[divider] * numSections;
-                float ampMultiplier = AMP_BOOST * sensitivities[divider] * maxSpectrumHeight;
-                // EXPLOIT INTEGER DIVISION TO GET YOUR CORRECT SENSITIVITY INDEX; I THINK IT WILL WORK
-                amps[i] = (int) checkAmpHeight(smoothAmp(amps[i], ampMultiplier * modifyAmp(fft.calcAvg(freqRange * divider, freqRange * (divider + 1)))));
+                int section = i / (amps.length/ numSections);
+                float freqUnit = section > 0 ? ((freqRanges[section] - freqRanges[section - 1]) * numSections) / amps.length : (freqRanges[section] * numSections) / amps.length;
+                float currentFreq = prevFreq + freqUnit;
+                
+                // print("divider: "+ divider +", section: "+ section +"\n");
+                // print("prevFreq: "+ prevFreq +", currentFreq: "+ currentFreq +", freqUnit: "+ freqUnit +"\n");
+                
+                float ampMultiplier = AMP_BOOST * sensitivities[section] * maxSpectrumHeight;
+                amps[i] = (int) checkAmpHeight(smoothAmp(amps[i], ampMultiplier * modifyAmp(fft.calcAvg(prevFreq, currentFreq))));
+                prevFreq = currentFreq;
+            
                 fill(255, 255, 255);
                 rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
             }
+            stroke(255);
         } 
     }
     
@@ -114,9 +122,9 @@ class AudioSpectrumVisualizer
      */
     float checkAmpHeight(float amp)
     {
-        if ( abs(amp) > maxSpectrumHeight )
+        if ( amp > maxSpectrumHeight )
             return maxSpectrumHeight;
-        else if ( abs(amp) < 0 )
+        else if ( amp < 0 )
             return 0;
         return amp;
     }
