@@ -9,6 +9,8 @@ class AudioSpectrumVisualizer
     AudioSource input;
     FFT fft;
     
+    boolean backgroundMode;
+    
     float SMOOTH_CONST;
     float spectrumX;
     float spectrumY;
@@ -25,7 +27,8 @@ class AudioSpectrumVisualizer
     int barWidth;
     boolean display;
 
-    AudioSpectrumVisualizer(float beginX, float endX, float beginY, float endY, int numSections, int numBars)
+
+    AudioSpectrumVisualizer(float beginX, float endX, float beginY, float endY, int numSections, int numBars, boolean backgroundMode)
     {
         /* Initialize display values. */
         spectrumX = beginX;
@@ -33,6 +36,9 @@ class AudioSpectrumVisualizer
         spectrumWidth = endX - beginX;
         maxSpectrumHeight = endY - beginY;
         display = true;
+
+        /* Initialize drawing objects. */
+        this.backgroundMode = backgroundMode;
         
         /* Initialize default values for adjustable variables. */
         this.numSections = numSections;
@@ -80,17 +86,19 @@ class AudioSpectrumVisualizer
             this.freqRanges[i] = freqRanges[i];
     }
     
-    void draw()
+    void draw(PGraphics buff)
     {
         if ( display )
         {  
-            noStroke();
+            noStroke();            
+            if ( backgroundMode )
+                loadPixels();
+            
             fft.forward(input.mix);
             float prevFreq = 0;
             for(int i = 0; i < amps.length; i++)
             {
-                int divider = i % (amps.length / numSections);
-                int section = i / (amps.length/ numSections);
+                int section = i / (amps.length / numSections);
                 float freqUnit = section > 0 ? ((freqRanges[section] - freqRanges[section - 1]) * numSections) / amps.length : (freqRanges[section] * numSections) / amps.length;
                 float currentFreq = prevFreq + freqUnit;
                 
@@ -100,10 +108,24 @@ class AudioSpectrumVisualizer
                 float ampMultiplier = AMP_BOOST * sensitivities[section] * maxSpectrumHeight;
                 amps[i] = (int) checkAmpHeight(smoothAmp(amps[i], ampMultiplier * modifyAmp(fft.calcAvg(prevFreq, currentFreq))));
                 prevFreq = currentFreq;
-            
-                fill(255, 255, 255);
-                rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
+                
+                if ( !backgroundMode )
+                {
+                    fill(255, 255, 255);
+                    rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
+                }
+                else
+                    for(int j = (int) ((maxSpectrumHeight - amps[i] - 1) * spectrumWidth); j < maxSpectrumHeight * spectrumWidth - 1; j += spectrumWidth)
+                    {
+                        int coordinate = j + (int) (((spectrumWidth / amps.length) + 1) * i);
+                        if ( i == amps.length - 1)
+                            System.arraycopy(buff.pixels, coordinate, pixels, coordinate, (int) (spectrumWidth - ((spectrumWidth / amps.length + 1) * i)));
+                        else
+                            System.arraycopy(buff.pixels, coordinate, pixels, coordinate, barWidth);
+                    }
             }
+            if ( backgroundMode )
+                updatePixels();
             stroke(255);
         } 
     }
@@ -142,6 +164,11 @@ class AudioSpectrumVisualizer
    /*
     *  standard setters/mutators
     */
+    
+    void toggleBackgroundMode()
+    {
+        backgroundMode = !backgroundMode; 
+    }
     
     void setRanges(int[] freqRanges)
     {
