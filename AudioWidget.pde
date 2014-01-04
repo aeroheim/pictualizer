@@ -30,6 +30,8 @@ class AudioWidget
         widgetHeight = endY - startY;
         this.input = input;
         
+        generateID3AlbumArt();
+        
         /*
         wave = new ScrollingAudioWaveform(width / 6.0, (5.0 * width) / 6.0, height / 2.0, height, height / 3);
         wave.listen(in);
@@ -47,6 +49,21 @@ class AudioWidget
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
     {
         
+    }
+    
+    void draw()
+    {
+        image(ID3AlbumArt, x, y);
+    }
+    
+    void generateID3AlbumArt()
+    {
+        /* Currently in player mode. Grab ID3Image if available. */
+        if (in instanceof AudioPlayer)   
+            ID3AlbumArt = getAlbumArt(getCurrentSong());
+        /* In input mode, generate default image. */
+        else
+            ID3AlbumArt = new PImage(64, 64);    
     }
 
 }

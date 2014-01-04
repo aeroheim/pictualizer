@@ -13,6 +13,9 @@ AudioSource in;
 ScrollingAudioWaveform scrollingVisualizer;
 AudioSpectrumVisualizer spectrumVisualizer;
 
+/* Widgets. */
+AudioWidget widget;
+
 
 /*
  *  Remove processing's built in frame from window.
@@ -57,6 +60,9 @@ void setup()
     spectrumVisualizer.setDividerWidth(5); 
     spectrumVisualizer.toggleBackgroundMode();
     
+    // initialize widget
+    widget = new AudioWidget(width / 6.0, height / 3.0, (5.0 * width) / 6.0, (2.0 * height) / 3.0, in);
+    
     initSDrop();
     initSongQueue();
 }
@@ -66,6 +72,7 @@ void draw()
 {        
     drawMain();
     tint(110, 150);
+    widget.draw();
     spectrumVisualizer.draw(mainBuffer);
     scrollingVisualizer.draw();
 }

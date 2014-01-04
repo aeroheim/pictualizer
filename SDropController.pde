@@ -11,7 +11,7 @@ void initSDrop()
     currDropCount = 0;
 }
 
-void dropEvent(DropEvent theDropEvent) 
+void dropEvent(DropEvent theDropEvent)
 {
     if (theDropEvent.isFile())
     {  
@@ -67,11 +67,14 @@ void loadSong(String filePath)
         ((AudioPlayer) in).close();
     minim.stop();
     minim = new Minim(this);
-    
+       
     /* Update minim with new song. */
     in = minim.loadFile(filePath);
     spectrumVisualizer.listen(in);
     ((AudioPlayer) in).play();
+    
+    /* Update widget metadata. */
+    widget.generateID3AlbumArt();
 }
 
 
