@@ -173,7 +173,7 @@ class ScrollingAudioWaveform
                 amps[i][j] = 0.0;
     }
     
-    void setSmooth(int SMOOTH_CONST)
+    void setSmooth(float SMOOTH_CONST)
     {
         this.SMOOTH_CONST = SMOOTH_CONST; 
     }

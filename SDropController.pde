@@ -13,28 +13,71 @@ void initSDrop()
 
 void dropEvent(DropEvent theDropEvent) 
 {
-    if ( theDropEvent.filePath().toLowerCase().endsWith(".mp3") || theDropEvent.filePath().toLowerCase().endsWith(".wav") ) 
-    {
-        /* Add song to queue. */
-        enqueueSong(theDropEvent.filePath());
-        currDropCount++;
-        
-        if (currDropCount >= getDropCount(theDropEvent))
-        {
-            /* Refresh minim. */
-            if (in instanceof AudioPlayer)
-                ((AudioPlayer) in).close();
-            minim.stop();
-            minim = new Minim(this);
-    
-            /* Update minim with new song. */
-            in = minim.loadFile(getCurrentSong());
-            spectrumVisualizer.listen(in);
-            ((AudioPlayer) in).play();
+    if (theDropEvent.isFile())
+    {  
+        /* First check for directories. */
+        File dropFile = theDropEvent.file();
+        if (dropFile.isDirectory())
+        {   
+            File[] directory = theDropEvent.listFilesAsArray(dropFile, true);
+            for(int i = 0; i < directory.length; i++)
+            {
+                String filePath = directory[i].getPath();
+                if (isSupportedSong(filePath))
+                    enqueueSong(filePath);
+            } 
+            checkDropCount(theDropEvent);
         }
+        /* Then proceed to individual files. */
+        else if (isSupportedSong(theDropEvent.filePath()))
+        {
+            enqueueSong(theDropEvent.filePath());            
+            checkDropCount(theDropEvent);
+        }
+        /* Ignore the file, increment the counter. */
+        else
+            checkDropCount(theDropEvent);
     }
 }
 
+
+/*
+ *  Checks whether the current file is the last file of the DropEvent.
+ *  If so, load the file as a song.
+*/
+void checkDropCount(DropEvent theDropEvent)
+{  
+    currDropCount++;
+    if (currDropCount >= getDropCount(theDropEvent))
+    {
+        loadSong(getCurrentSong());
+        currDropCount = 0;
+    }          
+}
+
+
+/*
+ *  Load a new song into the pictualizer's main AudioPlayer.
+ *  Uses the given filepath provided.
+*/
+void loadSong(String filePath)
+{
+    /* Refresh minim. */
+    if (in instanceof AudioPlayer)
+        ((AudioPlayer) in).close();
+    minim.stop();
+    minim = new Minim(this);
+    
+    /* Update minim with new song. */
+    in = minim.loadFile(filePath);
+    spectrumVisualizer.listen(in);
+    ((AudioPlayer) in).play();
+}
+
+
+/*
+ *  Returns the number of files dragged in a DropEvent.
+*/
 int getDropCount(DropEvent theDropEvent)
 {
     try 
@@ -46,4 +89,14 @@ int getDropCount(DropEvent theDropEvent)
     {
         return 1;
     }
+}
+
+
+/*
+ *  Current minim supported audio formats: mp3, wav
+ *  TODO: add self-implemented FLAC support later
+*/
+boolean isSupportedSong(String filePath)
+{
+    return filePath.toLowerCase().endsWith(".mp3") || filePath.toLowerCase().endsWith(".wav");
 }

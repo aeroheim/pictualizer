@@ -1,13 +1,13 @@
 import ddf.minim.*;
 import ddf.minim.analysis.*;
+import sojamo.drop.*;
 
 PImage img;
 PGraphics mainBuffer;
 
 /* Music/Minim */
 Minim minim;
-AudioInput in;
-AudioPlayer player;
+AudioSource in;
 
 /* Visualizations. */
 ScrollingAudioWaveform scrollingVisualizer;
@@ -40,26 +40,34 @@ void setup()
     in = minim.getLineIn();
     
     // initialize visualizations
-    scrollingVisualizer = new ScrollingAudioWaveform(width / 5.0, (4.0 * width) / 5.0, height / 2.0, height, height / 3);
+    scrollingVisualizer = new ScrollingAudioWaveform(width / 6.0, (5.0 * width) / 6.0, height / 2.0, height, height / 3);
     scrollingVisualizer.listen(in);
     scrollingVisualizer.setTimeOffset(18);
-    
-    spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21);   
+    scrollingVisualizer.setAmpBoost(0.2);
+    // scrollingVisualizer.setSmooth(0.8);
+        
+    // favorite ranges : 450, 1350, 2400
+    int[] spectrumFreqRanges = new int[] {200, 450, 900, 1350, 1800, 2400};
+    float[] spectrumSensitivities = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+    spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 30, false);
     spectrumVisualizer.listen(in);
     spectrumVisualizer.setSmooth(0.85);
-    int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
-    float[] spectrumSensitivities = new float[] {0.06, 0.06, 0.08};
     spectrumVisualizer.section(spectrumFreqRanges);
-    spectrumVisualizer.setSensitivities(spectrumSensitivities);    
+    spectrumVisualizer.setSensitivities(spectrumSensitivities);   
+    spectrumVisualizer.setDividerWidth(5); 
+    spectrumVisualizer.toggleBackgroundMode();
+    
+    initSDrop();
+    initSongQueue();
 }
 
 
 void draw()
 {        
-    image(img, 0, 0);
-    tint(180, 150);
+    drawMain();
+    tint(110, 150);
+    spectrumVisualizer.draw(mainBuffer);
     scrollingVisualizer.draw();
-    spectrumVisualizer.draw();
 }
 
 void drawMain()
@@ -67,10 +75,10 @@ void drawMain()
     mainBuffer.clear();
     mainBuffer.beginDraw();
     
-    image(img, 0, 0);
-    tint(180, 150);
-    
+    mainBuffer.image(img, 0, 0);
+    // mainBuffer.tint(110, 150);
     mainBuffer.endDraw();
+    
     image(mainBuffer, 0, 0);
 }
 
