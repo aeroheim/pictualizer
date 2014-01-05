@@ -2,27 +2,41 @@
  *  Taken from:
  *  http://supportforums.blackberry.com/t5/Java-Development/how-to-retrieve-ID3-art-Image-from-an-mp3-file/m-p/358490#M67015
  */ 
+
+PImage cachedAlbumArt;
+String cachedAlbumArtDirectory;
  
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import javax.imageio.ImageIO;
-
-
 PImage getAlbumArt(String filePath)
 {
     try
     {
+        /* We already cached the album art; load it instantly. */
+        if (filePath == cachedAlbumArtDirectory)
+            return cachedAlbumArt;
+            
         InputStream istream = new FileInputStream(filePath);
         BufferedImage temp = getID3Image(istream);
         istream.close();        
         
-        /* No album art available. */
+        /* No embedded album art available. Attempt to search through directory manually. */
         if (temp == null)
+        {
+            File child = new File(filePath);
+            File[] directory = child.getParentFile().listFiles();
+            for(int i = 0; i < directory.length; i++)
+            {
+                String path = directory[i].getPath().toLowerCase();
+                /* Found album art. */
+                if (path.endsWith(".jpg") || path.endsWith(".png"))
+                {
+                    cachedAlbumArt = loadImage(directory[i].getPath());
+                    cachedAlbumArtDirectory = path;
+                    return cachedAlbumArt;
+                }
+            }
+            /* No dice, just return blank default image. */
             return new PImage(128, 128);
+        }
             
         PImage albumArt = new PImage(temp.getWidth(), temp.getHeight(), PConstants.ARGB);
         temp.getRGB(0, 0, albumArt.width, albumArt.height, albumArt.pixels, 0, albumArt.width);

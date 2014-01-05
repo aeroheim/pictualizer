@@ -70,13 +70,14 @@ void loadSong(String filePath)
        
     /* Update minim with new song. */
     in = minim.loadFile(filePath);
-    spectrumVisualizer.listen(in);
+    widget.listen(in);
     ((AudioPlayer) in).play();
     
     /* Update widget metadata. */
     widget.generateID3AlbumArt();
+    widget.generateMetaData();
+    widget.getFileName(filePath);
 }
-
 
 /*
  *  Returns the number of files dragged in a DropEvent.

@@ -86,13 +86,13 @@ class AudioSpectrumVisualizer
             this.freqRanges[i] = freqRanges[i];
     }
     
-    void draw(PGraphics buff)
+    void draw(PGraphics srcBuff, PGraphics destBuff)
     {
         if ( display )
         {  
             noStroke();            
             if ( backgroundMode )
-                loadPixels();
+                destBuff.loadPixels();
             
             fft.forward(input.mix);
             float prevFreq = 0;
@@ -119,13 +119,13 @@ class AudioSpectrumVisualizer
                     {
                         int coordinate = j + (int) (((spectrumWidth / amps.length) + 1) * i);
                         if ( i == amps.length - 1)
-                            System.arraycopy(buff.pixels, coordinate, pixels, coordinate, (int) (spectrumWidth - ((spectrumWidth / amps.length + 1) * i)));
+                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, (int) (spectrumWidth - ((spectrumWidth / amps.length + 1) * i)));
                         else
-                            System.arraycopy(buff.pixels, coordinate, pixels, coordinate, barWidth);
+                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, barWidth);
                     }
             }
             if ( backgroundMode )
-                updatePixels();
+                destBuff.updatePixels();
             stroke(255);
         } 
     }
