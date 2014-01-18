@@ -20,23 +20,7 @@ PImage getAlbumArt(String filePath)
         
         /* No embedded album art available. Attempt to search through directory manually. */
         if (temp == null)
-        {
-            File child = new File(filePath);
-            File[] directory = child.getParentFile().listFiles();
-            for(int i = 0; i < directory.length; i++)
-            {
-                String path = directory[i].getPath().toLowerCase();
-                /* Found album art. */
-                if (path.endsWith(".jpg") || path.endsWith(".png"))
-                {
-                    cachedAlbumArt = loadImage(directory[i].getPath());
-                    cachedAlbumArtDirectory = path;
-                    return cachedAlbumArt;
-                }
-            }
-            /* No dice, just return blank default image. */
-            return new PImage(128, 128);
-        }
+            return searchForAlbumArt(filePath);
             
         PImage albumArt = new PImage(temp.getWidth(), temp.getHeight(), PConstants.ARGB);
         temp.getRGB(0, 0, albumArt.width, albumArt.height, albumArt.pixels, 0, albumArt.width);
@@ -45,9 +29,28 @@ PImage getAlbumArt(String filePath)
     }
     catch (Exception e)
     {
+        
         println("ID3Image file not found. Exception: "+e+"\n");
-        return new PImage(128, 128);
+        return searchForAlbumArt(filePath);
     }
+}
+
+PImage searchForAlbumArt(String filePath)
+{
+    File child = new File(filePath);
+    File[] directory = child.getParentFile().listFiles();
+    for(int i = 0; i < directory.length; i++)
+    {
+        String path = directory[i].getPath().toLowerCase();
+        /* Found album art. */
+        if (path.endsWith(".jpg") || path.endsWith(".png"))
+        {
+            cachedAlbumArt = loadImage(directory[i].getPath());
+            cachedAlbumArtDirectory = path;
+            return cachedAlbumArt;
+        }
+    }
+    return null;  
 }
 
 BufferedImage getID3Image(InputStream dataStream)

@@ -10,6 +10,8 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import javax.imageio.ImageIO;
 
+import java.lang.Float.*;
+
 PImage img;
 PGraphics tintBuffer;
 PGraphics imageBuffer;
@@ -73,7 +75,7 @@ void setup()
     */
     
     // initialize fonts
-    meiryo = createFont("Meiryo", 64, true);
+    meiryo = createFont("M+ 2p thin", 64, true);
     centuryGothic = createFont("Century Gothic", 64, true);
     
     // initialize widget
@@ -104,6 +106,7 @@ void drawMain()
     // spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */
+    tintBuffer.scale(.5);
     tintBuffer.endDraw(); 
     image(tintBuffer, 0, 0);
 }

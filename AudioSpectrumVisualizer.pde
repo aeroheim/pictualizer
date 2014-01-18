@@ -111,7 +111,7 @@ class AudioSpectrumVisualizer
                 
                 if ( !backgroundMode )
                 {
-                    fill(255, 255, 255);
+                    fill(200, 200, 200);
                     rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
                 }
                 else

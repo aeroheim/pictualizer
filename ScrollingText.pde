@@ -22,6 +22,8 @@ class ScrollingText
     int scrollPause;
     float frameElapsed;
     
+    boolean pause;
+    
     PGraphics textBuffer;
     
     ScrollingText(String text, PFont font, int size, float x, float scrollingTextWidth, float y)
@@ -37,9 +39,10 @@ class ScrollingText
         /* Calculate & initialize scroll values. */
         scrollSpeed = 0.0;
         scrollPause = 0;
-        translatedWidth = -1.0;
+        translatedWidth = 0.0;
         textFont(font, size);
         scrollWidth = textWidth(text) - scrollingTextWidth;
+        pause = true;
         
         /* Create the buffer to draw on. */
         textBuffer = createGraphics((int) scrollingTextWidth, (int) (textDescent() + textAscent()));
@@ -50,7 +53,7 @@ class ScrollingText
     
     void setScrollSpeed(float speed)
     {
-        scrollSpeed = -speed;
+        scrollSpeed = speed;
     }
     
     
@@ -58,9 +61,9 @@ class ScrollingText
      *  Time to pause the scroll once reaching an end.
      *  Time is measured in seconds.
      */
-    void setScrollPause(int pause)
+    void setScrollPause(int scrollPause)
     {
-        scrollPause = pause; 
+        this.scrollPause = scrollPause; 
     }
     
     void draw()
@@ -83,19 +86,23 @@ class ScrollingText
         textBuffer.beginDraw();   
         textBuffer.translate(translatedWidth, 0);
         textBuffer.text(text, 0, 0);
+
         textBuffer.endDraw();  
     }
     
     void scrollText()
     {
-        /* At end of text. Begin pause duration. */
-        if (abs(translatedWidth) < scrollWidth && translatedWidth != 0 && frameElapsed / 60 < scrollPause)
+        int compare1 = Float.compare(abs(translatedWidth), scrollWidth);
+        int compare2 = Float.compare(translatedWidth, 0.0);
+        
+        /* At end of text. Begin pause duration. */     
+        if ((compare1 > 0 || compare1 == 0 || compare2 == 0) && frameElapsed / 60 < scrollPause)
         {
             frameElapsed++;
             drawToBuffer();
         }
         /* Finished pause, now intiate the new scrolling. */
-        else if (abs(translatedWidth) > scrollWidth || translatedWidth == 0 && frameElapsed / 60 >= scrollPause)
+        else if ((compare1 > 0 || compare1 == 0 || compare2 == 0.0) && frameElapsed / 60 >= scrollPause)
         {
             scrollSpeed= -(scrollSpeed);
                    

@@ -60,7 +60,7 @@ class ScrollingAudioWaveform
     {
         if ( display )
         {
-            stroke(255, 255, 255);
+            stroke(200, 200, 200);
             for(int i = 0; i < amps.length; i++)
             {  
                 int offsetPos = round(amps[i].length) * i;
@@ -86,7 +86,7 @@ class ScrollingAudioWaveform
                         amps[i][j+1] = checkAmpHeight(smoothSample(amps[i][j + 1], modifySample(getAvgSample(prevBuffer, sampleBuffer)) * AMP_BOOST * HEIGHT_SCALE));
              
                         /* Connect the samples together to form a waveform. */
-                        line(waveformX + offsetPos + j, waveformY + amps[i][j], waveformX + offsetPos + j + 1, waveformY + amps[i][j + 1]);
+                        line(waveformX + offsetPos + j, waveformY + (int) amps[i][j], waveformX + offsetPos + j + 1, waveformY + (int) amps[i][j + 1]);
                     }
                 }
                 /* Propogate the waveform down and draw to simulate animation. */
@@ -94,7 +94,7 @@ class ScrollingAudioWaveform
                 {
                     for(int j = 0; j < amps[i].length - 1; j++)
                     {
-                        line(waveformX + offsetPos + j, waveformY + amps[i][j], waveformX + offsetPos + j + 1, waveformY + amps[i][j + 1]);
+                        line(waveformX + offsetPos + j, waveformY + (int) amps[i][j], waveformX + offsetPos + j + 1, waveformY + (int) amps[i][j + 1]);
                         /* Propogate values from previous time offset. */
                         amps[i][j] = amps[i + 1][j];
                     }

@@ -25,6 +25,7 @@ class AudioWidget
     /* Add text buttons. */
     
     PImage ID3AlbumArt;
+    PImage defaultArt;
  
     AudioWidget(float startX, float startY, float endX, float endY)
     {
@@ -34,6 +35,9 @@ class AudioWidget
         widgetWidth = endX - startX;
         widgetHeight = endY - startY;
         
+        defaultArt = loadImage("art.png");
+        defaultArt.resize((int) widgetHeight, (int) widgetHeight);
+        
         generateID3AlbumArt();
         generateMetaData();
         
@@ -42,7 +46,6 @@ class AudioWidget
         
         initVisualizations(spectrumRanges, spectrumBoost);
 
-        
         /*   
             spectrum = new AudioSpectrumVisualizer(0, width, 0, height, 3, 30, false);
             spectrum.listen(in);
@@ -63,20 +66,22 @@ class AudioWidget
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
     {
         /* Waveform visualizer. */
-        wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.0 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 3.0));
+        wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.25 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 3.0));
         wave.setTimeOffset(18);
         wave.setAmpBoost(0.2);
+        // wave.setSmooth(0.0);
       
         /* Spectrum visualizer. */
-        spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 2.0, y + widgetHeight, 3, 30, false);
+        spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 2.0, y + widgetHeight, 6, 30, false);
         spectrum.setSmooth(0.85);
         spectrum.section(spectrumRanges);
         spectrum.setSensitivities(spectrumBoost);   
-        spectrum.setDividerWidth(5); 
+        spectrum.setDividerWidth((int) (widgetWidth / 100.0)); 
     }
     
     void draw()
     {   
+        // scale(0.5);
         image(ID3AlbumArt, x, y);
         drawMetaData();
         // wave.draw();
@@ -85,22 +90,14 @@ class AudioWidget
     
     void drawMetaData()
     {
-        textFont(meiryo, 64);
+        textFont(meiryo, 12);
         textAlign(LEFT, TOP);
-        /* Draw related metadata if in player mode. */
-        if (input instanceof AudioPlayer && metaData != null)
-        {
-            /* Title. */
-            title.draw();
+
+        /* Title. */
+        title.draw();
                 
-            /* Artist. */
-            float displacement = textDescent();
-            textFont(meiryo, 24);
-            if (metaData.author().length() != 0)
-                text(metaData.author(), x + ID3AlbumArt.width + widgetWidth / 20, y + displacement * 2.8);
-            else
-                text("unknown", x + ID3AlbumArt.width + widgetWidth / 20, y + displacement * 2.8);               
-        }
+        /* Artist. */
+        artist.draw();        
     }
     
     String getFileName(String filePath)
@@ -116,30 +113,49 @@ class AudioWidget
         if (input instanceof AudioPlayer)
         {
             ID3AlbumArt = getAlbumArt(getCurrentSong());
+            if (ID3AlbumArt == null)
+                ID3AlbumArt = defaultArt;
             ID3AlbumArt.resize((int) widgetHeight, (int) widgetHeight);
         }
-        /* In input mode, generate default image. */
+        /* In input mode, load default image. */
         else
-            ID3AlbumArt = new PImage((int) widgetHeight, (int) widgetHeight);    
+            ID3AlbumArt = defaultArt;
     }
     
     void generateMetaData()
     {    
-        float xPos = x + ID3AlbumArt.width + widgetWidth / 20;
+        float startX = x + ID3AlbumArt.width + widgetWidth / 20;
+        float endX = x + widgetWidth - startX;
+        
+        int titleFontSize = (int) (widgetHeight / 3.5);
+        int artistFontSize = (int) (widgetHeight / 6.0);
+        
         if (input instanceof AudioPlayer)
         {
             metaData = ((AudioPlayer) input).getMetaData();
+            /* Generate metadata for song title. */
             if (metaData.title().length() != 0)
-                title = new ScrollingText(metaData.title(), meiryo, 64, xPos, x + widgetWidth - xPos, y);
+                title = new ScrollingText(metaData.title(), meiryo, titleFontSize, startX, endX, y);
             else
-                title = new ScrollingText(getFileName(metaData.fileName()), meiryo, 64, xPos, x + widgetWidth - xPos, y);
+                title = new ScrollingText(getFileName(metaData.fileName()), meiryo, titleFontSize, startX, endX, y);
+            
+            /* Generate metadata for song artist. */  
+            if (metaData.author().length() != 0)
+                artist = new ScrollingText(metaData.author(), meiryo, artistFontSize, startX, endX, y + textAscent() + textDescent() / 2);
+            else
+                artist = new ScrollingText("unknown", meiryo, artistFontSize, startX, endX, y + textAscent() + textDescent() / 2);
         }
         else
-            title = new ScrollingText("input mode", meiryo, 64, xPos, x + widgetWidth - xPos, y);
+        {
+            title = new ScrollingText("input", meiryo, titleFontSize, startX, endX, y);
+            artist = new ScrollingText("audio input", meiryo, artistFontSize, startX, endX, y + textAscent() + textDescent() / 2);
+        }
             
         /* Set default scroll options. */
-        title.setScrollSpeed(0.5);
+        title.setScrollSpeed(0.25);
         title.setScrollPause(5);
+        artist.setScrollSpeed(0.25);
+        artist.setScrollPause(5);
     }
     
     void drawScrollingTitle()
