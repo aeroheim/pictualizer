@@ -33,3 +33,8 @@ void mouseReleased()
 {
     dragging = false;
 }
+
+void mouseClicked()
+{
+    widget.registerClick();
+}

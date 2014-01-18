@@ -26,6 +26,8 @@ class AudioWidget
     
     PImage ID3AlbumArt;
     PImage defaultArt;
+    
+    States state;
  
     AudioWidget(float startX, float startY, float endX, float endY)
     {
@@ -43,6 +45,8 @@ class AudioWidget
         
         int[] spectrumRanges = new int[] {200, 450, 900, 1350, 1800, 2400};
         float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+        
+        state = States.AUDIOSPECTRUM;
         
         initVisualizations(spectrumRanges, spectrumBoost);
 
@@ -66,9 +70,11 @@ class AudioWidget
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
     {
         /* Waveform visualizer. */
-        wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.25 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 3.0));
+        wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.25 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 4.0));
         wave.setTimeOffset(18);
         wave.setAmpBoost(0.2);
+        wave.setAlpha(0);
+        wave.setDelta(-15);
         // wave.setSmooth(0.0);
       
         /* Spectrum visualizer. */
@@ -76,7 +82,8 @@ class AudioWidget
         spectrum.setSmooth(0.85);
         spectrum.section(spectrumRanges);
         spectrum.setSensitivities(spectrumBoost);   
-        spectrum.setDividerWidth((int) (widgetWidth / 100.0)); 
+        spectrum.setDividerWidth((int) (widgetWidth / 100.0));
+        spectrum.setDelta(15);
     }
     
     void draw()
@@ -85,7 +92,17 @@ class AudioWidget
         image(ID3AlbumArt, x, y);
         drawMetaData();
         // wave.draw();
-        spectrum.draw(imageBuffer, tintBuffer);
+        if (spectrum.isFading() && wave.isFading())
+        {
+            spectrum.draw(imageBuffer, tintBuffer);
+            wave.draw();
+        }
+        else if (state == States.AUDIOSPECTRUM)
+            spectrum.draw(imageBuffer, tintBuffer);
+        else if (state == States.AUDIOWAVEFORM)
+            wave.draw();
+            
+        mouseOver();
     }
     
     void drawMetaData()
@@ -98,6 +115,37 @@ class AudioWidget
                 
         /* Artist. */
         artist.draw();        
+    }
+    
+    void drawSeekBar()
+    {
+      
+    }
+    
+    void drawControl()
+    {
+         
+    }
+    
+    /* Draw the forward/backwards player buttons. */
+    private void drawArrow()
+    {
+
+    }
+    
+    private void drawPlay()
+    {
+      
+    }
+    
+    private void drawPause()
+    {
+      
+    }
+    
+    private void drawStop()
+    {
+      
     }
     
     String getFileName(String filePath)
@@ -157,10 +205,29 @@ class AudioWidget
         artist.setScrollSpeed(0.25);
         artist.setScrollPause(5);
     }
-    
-    void drawScrollingTitle()
-    {
-        
-    }
 
+
+    void mouseOver()
+    {
+        if (state == States.AUDIOSPECTRUM)
+            spectrum.mouseOver();
+        else
+            wave.mouseOver();
+    }
+    
+    void registerClick()
+    {
+        if (spectrum.mouseOver() && state == States.AUDIOSPECTRUM && !spectrum.isFading() && !wave.isFading())
+        {
+            spectrum.fade();
+            wave.fade();
+            state = States.AUDIOWAVEFORM;
+        }
+        else if (wave.mouseOver() && state == States.AUDIOWAVEFORM && !spectrum.isFading() && !wave.isFading())
+        {  
+            spectrum.fade();
+            wave.fade();
+            state = States.AUDIOSPECTRUM;
+        }
+    }
 }

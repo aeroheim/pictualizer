@@ -43,7 +43,7 @@ PImage searchForAlbumArt(String filePath)
     {
         String path = directory[i].getPath().toLowerCase();
         /* Found album art. */
-        if (path.endsWith(".jpg") || path.endsWith(".png"))
+        if (path.endsWith(".jpg") || path.endsWith(".png") || path.endsWith(".jpeg"))
         {
             cachedAlbumArt = loadImage(directory[i].getPath());
             cachedAlbumArtDirectory = path;

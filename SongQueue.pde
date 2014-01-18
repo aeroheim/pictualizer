@@ -22,6 +22,4 @@ void dequeueSong(int index)
 String getCurrentSong()
 {
     return songQueue.get(songIndex - 1);
-}
-
-
+}    

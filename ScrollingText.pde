@@ -22,8 +22,6 @@ class ScrollingText
     int scrollPause;
     float frameElapsed;
     
-    boolean pause;
-    
     PGraphics textBuffer;
     
     ScrollingText(String text, PFont font, int size, float x, float scrollingTextWidth, float y)
@@ -42,7 +40,6 @@ class ScrollingText
         translatedWidth = 0.0;
         textFont(font, size);
         scrollWidth = textWidth(text) - scrollingTextWidth;
-        pause = true;
         
         /* Create the buffer to draw on. */
         textBuffer = createGraphics((int) scrollingTextWidth, (int) (textDescent() + textAscent()));

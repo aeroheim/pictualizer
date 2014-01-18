@@ -26,6 +26,11 @@ class AudioSpectrumVisualizer
     int dividerWidth;
     int barWidth;
     boolean display;
+    
+    int spectrumColor;
+    int alpha;
+    int delta;
+    boolean fading;
 
 
     AudioSpectrumVisualizer(float beginX, float endX, float beginY, float endY, int numSections, int numBars, boolean backgroundMode)
@@ -36,6 +41,12 @@ class AudioSpectrumVisualizer
         spectrumWidth = endX - beginX;
         maxSpectrumHeight = endY - beginY;
         display = true;
+        spectrumColor = 200;
+        
+        /* Fading. */
+        alpha = 255;
+        delta = 5;
+        fading = false;
 
         /* Initialize drawing objects. */
         this.backgroundMode = backgroundMode;
@@ -94,6 +105,11 @@ class AudioSpectrumVisualizer
             if ( backgroundMode )
                 destBuff.loadPixels();
             
+            if ( alpha != 0 && alpha != 255 )
+                alpha += delta;
+            else
+                fading = false;
+            
             fft.forward(input.mix);
             float prevFreq = 0;
             for(int i = 0; i < amps.length; i++)
@@ -111,7 +127,7 @@ class AudioSpectrumVisualizer
                 
                 if ( !backgroundMode )
                 {
-                    fill(200, 200, 200);
+                    fill(spectrumColor, alpha);
                     rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
                 }
                 else
@@ -230,4 +246,43 @@ class AudioSpectrumVisualizer
     {
         return AMP_BOOST; 
     }
+    
+    /* 
+     *  mouse functions
+     */
+     
+     boolean mouseOver()
+     {
+         if (mouseX >= spectrumX && mouseX <= (spectrumX + spectrumWidth) &&
+             mouseY >= spectrumY - maxSpectrumHeight && mouseY <= spectrumY)
+         {
+             spectrumColor = 255;
+             return true;
+         }
+         spectrumColor = 200;
+         return false;
+     }
+     
+     void fade()
+     {
+         if (alpha == 0 || alpha == 255)
+             delta = -delta;
+         alpha += delta;
+         fading = true;
+     }
+     
+     boolean isFading()
+     {
+         return fading; 
+     }
+     
+     void setAlpha(int alpha)
+     {
+         this.alpha = alpha; 
+     }
+     
+     void setDelta(int delta)
+     {
+         this.delta = delta; 
+     }
 }

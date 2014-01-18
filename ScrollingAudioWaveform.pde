@@ -19,6 +19,11 @@ class ScrollingAudioWaveform
     float maxSampleBuffer;
     float[][] amps;
     boolean display;
+    
+    int waveColor;
+    int alpha;
+    int delta;
+    boolean fading;
   
     ScrollingAudioWaveform(float beginX, float endX, float centerY, int heightScale, int maxHeight)
     {        
@@ -30,10 +35,16 @@ class ScrollingAudioWaveform
         maxWaveformHeight = maxHeight;
         display = true;
         
+        /* Fading. */
+        alpha = 255;
+        delta = 5;
+        fading = false;
+        
         /* Initialize default values for adjustable variables. */
         TIME_OFFSET = 1;
         SMOOTH_CONST = 0.0;
         AMP_BOOST = 1.0;
+        waveColor = 200;
     }
     
     void toggleDraw()
@@ -60,7 +71,13 @@ class ScrollingAudioWaveform
     {
         if ( display )
         {
-            stroke(200, 200, 200);
+            if ( alpha != 0 && alpha != 255 )
+                alpha += delta;
+            else
+                fading = false;
+                
+            stroke(waveColor, alpha);
+            
             for(int i = 0; i < amps.length; i++)
             {  
                 int offsetPos = round(amps[i].length) * i;
@@ -108,7 +125,9 @@ class ScrollingAudioWaveform
      */
     float checkAmpHeight(float amp)
     {
-        if ( abs(amp) > maxWaveformHeight )
+        if ( Float.isInfinite(abs(amp)) )
+            return 0;
+        else if ( abs(amp) > maxWaveformHeight )
             return maxWaveformHeight;
         return amp;
     }
@@ -195,5 +214,44 @@ class ScrollingAudioWaveform
     float getSmoothConst()
     {
         return SMOOTH_CONST; 
+    }
+    
+    /* 
+     *  mouse functions
+     */
+     
+    boolean mouseOver()
+    {
+        if (mouseX >= waveformX && mouseX <= (waveformX + waveformWidth) &&
+            mouseY >= (int)(waveformY - maxWaveformHeight) && mouseY <= (int)(waveformY + maxWaveformHeight))
+        {
+            waveColor = 255;
+            return true;
+        }
+        waveColor = 200;
+        return false;
+    }
+    
+    void fade()
+    {
+        if (alpha == 0 || alpha == 255)
+            delta = -delta;
+        alpha += delta;
+        fading = true;
+    }
+    
+    boolean isFading()
+    {
+        return fading; 
+    }
+     
+    void setAlpha(int alpha)
+    {
+        this.alpha = alpha; 
+    }
+    
+    void setDelta(int delta)
+    {
+        this.delta = delta; 
     }
 }
