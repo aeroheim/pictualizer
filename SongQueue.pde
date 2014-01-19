@@ -34,6 +34,7 @@ void loadSong(String filePath)
     /* Update minim with new song. */
     in = minim.loadFile(filePath);
     widget.listen(in);
+    spectrumVisualizer.listen(in);
     ((AudioPlayer) in).play();
     
     /* Update widget metadata. */

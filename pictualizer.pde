@@ -19,6 +19,7 @@ PGraphics imageBuffer;
 /* Music/Minim */
 Minim minim;
 AudioSource in;
+boolean manualPlayerPause;
 
 /* Visualizations. */
 AudioSpectrumVisualizer spectrumVisualizer;
@@ -61,16 +62,18 @@ void setup()
     minim = new Minim(this);
     in = minim.getLineIn(); 
     
+    manualPlayerPause = false;
+    
     
         // favorite ranges : 450, 1350, 2400
-        int[] spectrumFreqRanges = new int[] {200, 450, 900, 1350, 1800, 2400};
-        float[] spectrumSensitivities = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
-        spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 30, false);
+        int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
+        float[] spectrumSensitivities = new float[] {0.08, 0.1, 0.1}; 
+        spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21, false);
         spectrumVisualizer.listen(in);
-        spectrumVisualizer.setSmooth(0.85);
+        spectrumVisualizer.setSmooth(0.9);
         spectrumVisualizer.section(spectrumFreqRanges);
         spectrumVisualizer.setSensitivities(spectrumSensitivities);   
-        spectrumVisualizer.setDividerWidth(2); 
+        spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
         spectrumVisualizer.toggleBackgroundMode();
 
     
@@ -79,8 +82,8 @@ void setup()
     centuryGothic = createFont("Century Gothic", 64, true);
     
     // initialize widget
-    // widget = new AudioWidget(width / 6.0, height / 3.0, (4.0 * width) / 6.0, (1.0 * height) / 3.0);
-    widget = new AudioWidget(width / 20.0, height / 10.0, width / 2.0, height / 4.0);
+    widget = new AudioWidget(width / 6.0, height / 3.0, (4.0 * width) / 6.0, (1.0 * height) / 3.0);
+    // widget = new AudioWidget(width / 20.0, height / 10.0, width / 2.0, height / 4.0);
     widget.listen(in);
     
     
@@ -93,7 +96,13 @@ void draw()
 {        
     drawMain();
     // tint(110, 150);
-    // widget.draw();
+    widget.draw();
+    if (in instanceof AudioPlayer)
+    {
+        /* Song finished, attempt to load next song. */
+        if (!((AudioPlayer)in).isPlaying() && !manualPlayerPause)
+            loadNextSong();
+    }
 }
 
 void drawMain()
@@ -103,8 +112,8 @@ void drawMain()
     tintBuffer.beginDraw();
     
     tintBuffer.image(img, 0, 0);
-    tintBuffer.tint(130, 150);
-    spectrumVisualizer.draw(imageBuffer, tintBuffer);
+    tintBuffer.tint(110, 90);
+    // spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */
     tintBuffer.endDraw(); 

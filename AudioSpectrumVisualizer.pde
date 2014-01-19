@@ -123,6 +123,15 @@ class AudioSpectrumVisualizer
                 
                 float ampMultiplier = AMP_BOOST * sensitivities[section] * maxSpectrumHeight;
                 amps[i] = (int) checkAmpHeight(smoothAmp(amps[i], ampMultiplier * modifyAmp(fft.calcAvg(prevFreq, currentFreq))));
+                
+                // test text
+                if ( backgroundMode )
+                {
+                    textFont(centuryGothic, width / 200.0);
+                    textAlign(LEFT);
+                    text(currentFreq+"Hz", spectrumX + (spectrumWidth / amps.length + 1) * i, spectrumY - amps[i] - 2);
+                }
+                
                 prevFreq = currentFreq;
                 
                 if ( !backgroundMode )
@@ -133,11 +142,15 @@ class AudioSpectrumVisualizer
                 else
                     for(int j = (int) ((maxSpectrumHeight - amps[i] - 1) * spectrumWidth); j < maxSpectrumHeight * spectrumWidth - 1; j += spectrumWidth)
                     {
-                        int coordinate = j + (int) (((spectrumWidth / amps.length) + 1) * i);
+                        int coordinate = j + ((((int)spectrumWidth / amps.length) + 1) * i);
+                        if ( coordinate > (width * height))
+                            print("coordinate: "+coordinate+"\n");
+
                         if ( i == amps.length - 1)
-                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, (int) (spectrumWidth - ((spectrumWidth / amps.length + 1) * i))); //<>//
+                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, (int) spectrumWidth - (((int)spectrumWidth / amps.length + 1) * i));
                         else
-                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, barWidth); //<>//
+                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, barWidth);
+
                     }
             }
             if ( backgroundMode )

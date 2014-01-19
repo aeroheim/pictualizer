@@ -35,6 +35,18 @@ class AudioWidget
     float barY;
     float barHeight;
     
+    float playPauseX;
+    float playPauseY;
+    float playPauseWidth;
+    float playPauseHeight;
+    
+    float pauseX;
+    float pauseWidth;
+    
+    float stopX;
+    float stopY;
+    float stopSideLength;
+    
     PImage ID3AlbumArt;
     PImage defaultArt;
     
@@ -56,9 +68,15 @@ class AudioWidget
         this.widgetWidth = widgetWidth;
         this.widgetHeight = widgetHeight;
         
-        defaultArt = loadImage("art.png");
-        defaultArt.resize((int) widgetHeight, (int) widgetHeight);
-        
+        try {
+            defaultArt = loadImage("art.png");
+            defaultArt.resize((int) widgetHeight, (int) widgetHeight);
+        }
+        catch (Exception e)
+        {
+            defaultArt = null;
+        }
+
         generateID3AlbumArt();
         generateMetaData();
         
@@ -74,6 +92,21 @@ class AudioWidget
         forward = new TextButton(meiryo, artistFontSize, "> >", x + ID3AlbumArt.width - previous.getWidth(), y + widgetHeight, 200);
         seek = new TextButton(meiryo, artistFontSize, "seek", x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, 200);
         vol = new TextButton(meiryo, artistFontSize, "vol.", x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, 200);
+        
+        /* Buttons. */         
+        playPauseX = x + ID3AlbumArt.width / 2.75;
+        playPauseY = y + widgetHeight * 1.09;
+        playPauseWidth = x + ID3AlbumArt.width / 2.25 - playPauseX;
+        playPauseHeight = y + widgetHeight * 1.19 - playPauseY;
+        
+        stopX = x + ID3AlbumArt.width / 1.85;
+        stopY = y + widgetHeight * 1.1;
+        stopSideLength = widgetHeight * 0.08;
+        
+        pauseX = playPauseX + stopSideLength / 1.5;
+        pauseWidth = stopSideLength / 4.0;
+        
+        
         
         visMode = States.AUDIO_SPECTRUM;
         barMode = States.BAR_SEEK;
@@ -183,6 +216,32 @@ class AudioWidget
             vol.draw();
             drawVolumeBar();
         }
+        
+        // draw play
+        if ( !((AudioPlayer) input).isPlaying() )
+        {
+            fill(200, 150);
+            if (playMouseOver())
+                fill(255);
+            triangle(playPauseX, playPauseY, 
+                     playPauseX, playPauseY + playPauseHeight, 
+                     playPauseX + playPauseWidth, playPauseY + playPauseHeight / 2.0);
+        }
+        else
+        {        
+            // draw pause
+            fill(200, 150);
+            if (pauseMouseOver())
+                fill(255);
+            rect(playPauseX, stopY, pauseWidth, stopSideLength);
+            rect(pauseX, stopY, pauseWidth, stopSideLength);
+        }
+        
+        // draw stop
+        fill(200, 150);
+        if (stopMouseOver())
+            fill(255);
+        rect(stopX, stopY, stopSideLength, stopSideLength);
     }
     
     void drawSeekBar()
@@ -240,8 +299,18 @@ class AudioWidget
             ID3AlbumArt.resize((int) widgetHeight, (int) widgetHeight);
         }
         /* In input mode, load default image. */
-        else
+        else if (defaultArt != null)
             ID3AlbumArt = defaultArt;
+        /* No default art, create one. */
+        else
+        {
+            defaultArt = createImage((int) widgetHeight, (int) widgetHeight, ARGB);
+            defaultArt.loadPixels();
+            for(int i = 0; i < defaultArt.pixels.length; i++)
+                defaultArt.pixels[i] = color(50, 125);
+            defaultArt.updatePixels();
+            ID3AlbumArt = defaultArt; 
+        }
     }
     
     void generateMetaData()
@@ -301,7 +370,33 @@ class AudioWidget
             vol.mouseOver();
         
         previous.mouseOver();
-        forward.mouseOver();
+        forward.mouseOver();   
+    }
+    
+    boolean playMouseOver()
+    {
+        if ( !((AudioPlayer) input).isPlaying() &&
+            mouseX >= playPauseX && mouseX <= playPauseX + playPauseWidth &&
+            mouseY >= playPauseY && mouseY <= playPauseY + playPauseHeight)
+            return true;
+        return false;  
+    }
+    
+    boolean pauseMouseOver()
+    {
+        if ( ((AudioPlayer) input).isPlaying() &&
+            mouseX >= playPauseX && mouseX <= playPauseX + playPauseWidth &&
+            mouseY >= playPauseY && mouseY <= playPauseY + playPauseHeight)
+            return true;
+        return false;  
+    }
+    
+    boolean stopMouseOver()
+    {
+        if ( mouseX >= stopX && mouseX <= stopX + stopSideLength &&
+             mouseY >= stopY && mouseY <= stopY + stopSideLength)
+             return true;
+        return false;
     }
     
     void registerClick()
@@ -322,10 +417,33 @@ class AudioWidget
             }
             /* Previous song. */
             else if (previous.mouseOver())
+            {
                 loadPrevSong();
+            }
             /* Next song. */
             else if (forward.mouseOver())
+            {
                 loadNextSong();
+            }
+            else if (playMouseOver())
+            {
+                /* Hack to check if song is over but not paused. Minim doesn't have proper working functionality to detect this. */
+                if ( !manualPlayerPause )
+                    ((AudioPlayer) input).rewind();
+                ((AudioPlayer) input).play();
+                manualPlayerPause = false;
+            }
+            else if (pauseMouseOver())
+            {
+                ((AudioPlayer) input).pause();
+                manualPlayerPause = true;
+            }
+            else if (stopMouseOver())
+            {
+                 ((AudioPlayer) input).pause();
+                 ((AudioPlayer) input).rewind();
+                 manualPlayerPause = true;
+            }
             /* Clicked on seek/vol, switch states. */
             else if (seek.mouseOver() || vol.mouseOver())
             {
