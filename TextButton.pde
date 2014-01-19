@@ -8,27 +8,27 @@ class TextButton {
   
   private PFont font;
   private int size;
-  private int xPos;
-  private int yPos;
+  private float xPos;
+  private float yPos;
   private String text;
+  int textColor;
   
-  //Color constants for the TextButton class.
-  public final int HIGHLIGHT = 255;
-  public final int DIM = 175;
+
   
   
   // Creates a TextButton object.
-  public TextButton(PFont font, int size, String text, int xPos, int yPos) 
+  public TextButton(PFont font, int size, String text, float xPos, float yPos, int textColor) 
   {
     this.font = font;
     this.size = size;
     this.text = text;
     this.xPos = xPos;
     this.yPos = yPos;
+    this.textColor = textColor;
   }
   
   // Changes the position of this text button.
-  public void changePos(int xPos, int yPos)
+  public void changePos(float xPos, float yPos)
   {
     this.xPos = xPos;
     this.yPos = yPos;
@@ -41,50 +41,62 @@ class TextButton {
   }
   
   // Draws the designated text with the designated color.
-  public void draw(int textColor) 
+  public void draw()
   {
-    fill(textColor, textColor, textColor);
+    fill(textColor);
     textFont(font, size);
+    textAlign(LEFT, TOP); 
     text(text, xPos, yPos);
   }
   
   // Returns the width of this TextButton.
-  public int getWidth()
+  public float getWidth()
   {
     textFont(font, size);
-    return (int)textWidth(text); 
+    return textWidth(text); 
   }
   
   // Returns the height of this TextButton.
-  public int getHeight()
+  public float getHeight()
   {
     textFont(font, size);
-    return (int)textWidth(text);
+    return textAscent() + textDescent();
   }
   
   // Returns the starting X position of this TextButton.
-  public int getX()
+  public float getX()
   {
     return xPos;
   }
   
   // Returns the starting Y position of this TextButton.
-  public int getY()
+  public float getY()
   {
     return yPos;
   }
   
   // Returns the ending X position of this TextButton.
-  public int getEndX()
+  public float getEndX()
   {
     return xPos + getWidth();
   }
   
   // Returns the ending Y position of this TextButton.
-  public int getEndY()
+  public float getEndY()
   {
     return yPos + getHeight();
   }
   
+  boolean mouseOver()
+  {
+      if (mouseX >= xPos && mouseX <= xPos + getWidth() &&
+          mouseY >= yPos && mouseY <= yPos + getHeight())
+      {
+          textColor = 255;
+          return true;
+      }
+      textColor = 200;
+      return false;
+  }
+  
 }
-

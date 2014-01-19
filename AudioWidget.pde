@@ -23,19 +23,38 @@ class AudioWidget
     ScrollingText artist;
        
     /* Add text buttons. */
+    TextButton forward;
+    TextButton previous;
+    TextButton seek;
+    TextButton vol;
+    
+    // Bar seekBar;
+    // Bar volBar;
+    float barX;
+    float barWidth;        
+    float barY;
+    float barHeight;
     
     PImage ID3AlbumArt;
     PImage defaultArt;
     
-    States state;
+    int titleFontSize;
+    int artistFontSize;
+    int barFontSize;
+    
+    String songLength;
+    float volume;
+    
+    States visMode;
+    States barMode;
  
-    AudioWidget(float startX, float startY, float endX, float endY)
+    AudioWidget(float startX, float startY, float widgetWidth, float widgetHeight)
     {
         
         x = startX;
         y = startY;
-        widgetWidth = endX - startX;
-        widgetHeight = endY - startY;
+        this.widgetWidth = widgetWidth;
+        this.widgetHeight = widgetHeight;
         
         defaultArt = loadImage("art.png");
         defaultArt.resize((int) widgetHeight, (int) widgetHeight);
@@ -46,7 +65,26 @@ class AudioWidget
         int[] spectrumRanges = new int[] {200, 450, 900, 1350, 1800, 2400};
         float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
         
-        state = States.AUDIOSPECTRUM;
+        titleFontSize = (int) (widgetHeight / 3.5);
+        artistFontSize = (int) (widgetHeight / 6.0);
+        barFontSize = (int) (widgetHeight / 12.0);
+        
+        /* Text button initialize. */
+        previous = new TextButton(meiryo, artistFontSize, "< <", x, y + widgetHeight, 200);
+        forward = new TextButton(meiryo, artistFontSize, "> >", x + ID3AlbumArt.width - previous.getWidth(), y + widgetHeight, 200);
+        seek = new TextButton(meiryo, artistFontSize, "seek", x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, 200);
+        vol = new TextButton(meiryo, artistFontSize, "vol.", x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, 200);
+        
+        visMode = States.AUDIO_SPECTRUM;
+        barMode = States.BAR_SEEK;
+        
+        volume = 0.0;
+        
+        /* Bars. */
+        barX = seek.getEndX() + seek.getWidth() / 4.0;
+        barWidth = x + widgetWidth - barX;
+        barY = seek.getY() + seek.getHeight() / 1.4;
+        barHeight = seek.getHeight() / 15.0;
         
         initVisualizations(spectrumRanges, spectrumBoost);
 
@@ -65,6 +103,8 @@ class AudioWidget
         this.input = input;
         wave.listen(input);
         spectrum.listen(input);
+        if (input instanceof AudioPlayer)
+            ((AudioPlayer) input).setGain(volume);
     }
     
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
@@ -72,7 +112,7 @@ class AudioWidget
         /* Waveform visualizer. */
         wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.25 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 4.0));
         wave.setTimeOffset(18);
-        wave.setAmpBoost(0.2);
+        wave.setAmpBoost(0.25);
         wave.setAlpha(0);
         wave.setDelta(-15);
         // wave.setSmooth(0.0);
@@ -90,19 +130,31 @@ class AudioWidget
     {   
         // scale(0.5);
         image(ID3AlbumArt, x, y);
+        
+        /* Metadata. */
         drawMetaData();
-        // wave.draw();
+        
+        /* Visualization. */
+        drawVisualization();
+            
+        /* Control. */
+        if (input instanceof AudioPlayer)
+            drawControl(); 
+        
+        mouseOver();
+    }
+    
+    void drawVisualization()
+    {
         if (spectrum.isFading() && wave.isFading())
         {
             spectrum.draw(imageBuffer, tintBuffer);
             wave.draw();
         }
-        else if (state == States.AUDIOSPECTRUM)
+        else if (visMode == States.AUDIO_SPECTRUM)
             spectrum.draw(imageBuffer, tintBuffer);
-        else if (state == States.AUDIOWAVEFORM)
+        else if (visMode == States.AUDIO_WAVEFORM)
             wave.draw();
-            
-        mouseOver();
     }
     
     void drawMetaData()
@@ -110,42 +162,64 @@ class AudioWidget
         textFont(meiryo, 12);
         textAlign(LEFT, TOP);
 
-        /* Title. */
+        /* Title. */ 
         title.draw();
                 
         /* Artist. */
-        artist.draw();        
+        artist.draw();       
+    }
+     
+    void drawControl()
+    {
+        previous.draw(); 
+        forward.draw(); 
+        if (barMode == States.BAR_SEEK)
+        {
+            seek.draw();
+            drawSeekBar();
+        }
+        else
+        {
+            vol.draw();
+            drawVolumeBar();
+        }
     }
     
     void drawSeekBar()
-    {
-      
+    {   
+        /* Draw background seek bar. */
+        noStroke();
+        fill(200, 35);
+        rect(barX, barY, barWidth, barHeight);
+        
+        /* Draw current seek bar. */
+        float currentMillisPos = ((AudioPlayer) in).position();
+        float percent = currentMillisPos / ((AudioPlayer) in).length();
+        fill(175);
+        rect(barX, barY, percent * barWidth, barHeight);
+        
+        int sec  = (int) (currentMillisPos / 1000) % 60 ;
+        int min  = (int) ((currentMillisPos / (1000*60)) % 60);
+        int hr   = (int) ((currentMillisPos / (1000*60*60)) % 24);
+        
+        textFont(centuryGothic, barFontSize);
+        text(String.format("%02d:%02d:%02d", hr, min, sec)+" / "+songLength, barX, seek.getY() + textAscent() * .75);
     }
     
-    void drawControl()
+    void drawVolumeBar()
     {
-         
-    }
-    
-    /* Draw the forward/backwards player buttons. */
-    private void drawArrow()
-    {
-
-    }
-    
-    private void drawPlay()
-    {
-      
-    }
-    
-    private void drawPause()
-    {
-      
-    }
-    
-    private void drawStop()
-    {
-      
+        /* Draw background volume bar. */
+        noStroke();
+        fill(200, 35);
+        rect(barX, barY, barWidth, barHeight);
+        
+        /* Draw current volume bar. */
+        float percent = (((AudioPlayer) input).getGain() + 80) / 94;
+        fill(175);
+        rect(barX, barY, percent * barWidth, barHeight);
+        
+        textFont(centuryGothic, barFontSize);
+        text(((AudioPlayer) input).getGain()+" dB", barX, seek.getY() + textAscent() * .75);          
     }
     
     String getFileName(String filePath)
@@ -175,11 +249,18 @@ class AudioWidget
         float startX = x + ID3AlbumArt.width + widgetWidth / 20;
         float endX = x + widgetWidth - startX;
         
-        int titleFontSize = (int) (widgetHeight / 3.5);
-        int artistFontSize = (int) (widgetHeight / 6.0);
+        titleFontSize = (int) (widgetHeight / 3.5);
+        artistFontSize = (int) (widgetHeight / 6.0);
         
         if (input instanceof AudioPlayer)
         {
+            float songMaxLength = ((AudioPlayer) input).length();
+            int songSec  = (int)((songMaxLength / 1000) % 60) ;
+            int songMin  = (int)((songMaxLength / (1000 * 60)) % 60);
+            int songHr   = (int)((songMaxLength / (1000 * 60 * 60)) % 24);
+            
+            songLength = String.format("%02d:%02d:%02d", songHr, songMin, songSec);
+            
             metaData = ((AudioPlayer) input).getMetaData();
             /* Generate metadata for song title. */
             if (metaData.title().length() != 0)
@@ -209,25 +290,66 @@ class AudioWidget
 
     void mouseOver()
     {
-        if (state == States.AUDIOSPECTRUM)
+        if (visMode == States.AUDIO_SPECTRUM)
             spectrum.mouseOver();
         else
             wave.mouseOver();
+            
+        if (barMode == States.BAR_SEEK)
+            seek.mouseOver();
+        else
+            vol.mouseOver();
+        
+        previous.mouseOver();
+        forward.mouseOver();
     }
     
     void registerClick()
     {
-        if (spectrum.mouseOver() && state == States.AUDIOSPECTRUM && !spectrum.isFading() && !wave.isFading())
+        if (mouseButton == LEFT)
         {
-            spectrum.fade();
-            wave.fade();
-            state = States.AUDIOWAVEFORM;
-        }
-        else if (wave.mouseOver() && state == States.AUDIOWAVEFORM && !spectrum.isFading() && !wave.isFading())
-        {  
-            spectrum.fade();
-            wave.fade();
-            state = States.AUDIOSPECTRUM;
+            if (spectrum.mouseOver() && visMode == States.AUDIO_SPECTRUM && !spectrum.isFading() && !wave.isFading())
+            {
+                spectrum.fade();
+                wave.fade();
+                visMode = States.AUDIO_WAVEFORM;
+            }
+            else if (wave.mouseOver() && visMode == States.AUDIO_WAVEFORM && !spectrum.isFading() && !wave.isFading())
+            {  
+                spectrum.fade();
+                wave.fade();
+                visMode = States.AUDIO_SPECTRUM;
+            }
+            /* Previous song. */
+            else if (previous.mouseOver())
+                loadPrevSong();
+            /* Next song. */
+            else if (forward.mouseOver())
+                loadNextSong();
+            /* Clicked on seek/vol, switch states. */
+            else if (seek.mouseOver() || vol.mouseOver())
+            {
+                if (barMode == States.BAR_SEEK)
+                    barMode = States.BAR_VOL;
+                else
+                    barMode = States.BAR_SEEK;
+            }
+            /* Clicked on bar, calculate position/volume to seek to. */
+            else if (input instanceof AudioPlayer && 
+                     mouseX >= barX && mouseX <= barX + barWidth && mouseY >= barY - barHeight * 2 && mouseY <= barY + barHeight * 2)
+            {
+                float percent = (mouseX - barX) / barWidth;
+                /* Seek bar. */
+                if ( barMode == States.BAR_SEEK )
+                    ((AudioPlayer) input).cue((int) (percent * ((AudioPlayer) input).length()));
+                /* Volume bar. */
+                else
+                {
+                    float newGain = 94 * percent - 80;
+                    ((AudioPlayer) input).setGain(newGain);
+                    volume = newGain;
+                }
+            }
         }
     }
 }

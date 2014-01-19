@@ -6,6 +6,8 @@
 
 enum States
 {
-    AUDIOSPECTRUM,
-    AUDIOWAVEFORM;
+    AUDIO_SPECTRUM,
+    AUDIO_WAVEFORM,
+    BAR_SEEK,
+    BAR_VOL;
 }

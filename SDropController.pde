@@ -55,30 +55,6 @@ void checkDropCount(DropEvent theDropEvent)
     }          
 }
 
-
-/*
- *  Load a new song into the pictualizer's main AudioPlayer.
- *  Uses the given filepath provided.
-*/
-void loadSong(String filePath)
-{
-    /* Refresh minim. */
-    if (in instanceof AudioPlayer)
-        ((AudioPlayer) in).close();
-    minim.stop();
-    minim = new Minim(this);
-       
-    /* Update minim with new song. */
-    in = minim.loadFile(filePath);
-    widget.listen(in);
-    ((AudioPlayer) in).play();
-    
-    /* Update widget metadata. */
-    widget.generateID3AlbumArt();
-    widget.generateMetaData();
-    widget.getFileName(filePath);
-}
-
 /*
  *  Returns the number of files dragged in a DropEvent.
 */

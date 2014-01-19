@@ -135,9 +135,9 @@ class AudioSpectrumVisualizer
                     {
                         int coordinate = j + (int) (((spectrumWidth / amps.length) + 1) * i);
                         if ( i == amps.length - 1)
-                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, (int) (spectrumWidth - ((spectrumWidth / amps.length + 1) * i)));
+                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, (int) (spectrumWidth - ((spectrumWidth / amps.length + 1) * i))); //<>//
                         else
-                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, barWidth);
+                            System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, barWidth); //<>//
                     }
             }
             if ( backgroundMode )

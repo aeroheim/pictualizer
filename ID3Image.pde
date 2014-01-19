@@ -10,8 +10,10 @@ PImage getAlbumArt(String filePath)
 {
     try
     {
+        File parent = new File(filePath).getParentFile();
+        
         /* We already cached the album art; load it instantly. */
-        if (filePath == cachedAlbumArtDirectory)
+        if (parent.getPath().equals(cachedAlbumArtDirectory))
             return cachedAlbumArt;
             
         InputStream istream = new FileInputStream(filePath);
@@ -21,11 +23,13 @@ PImage getAlbumArt(String filePath)
         /* No embedded album art available. Attempt to search through directory manually. */
         if (temp == null)
             return searchForAlbumArt(filePath);
-            
-        PImage albumArt = new PImage(temp.getWidth(), temp.getHeight(), PConstants.ARGB);
-        temp.getRGB(0, 0, albumArt.width, albumArt.height, albumArt.pixels, 0, albumArt.width);
-        albumArt.updatePixels();
-        return albumArt;
+        
+        /* Found embedded album art, cache it and return it. */    
+        cachedAlbumArt = new PImage(temp.getWidth(), temp.getHeight(), PConstants.ARGB);
+        temp.getRGB(0, 0, cachedAlbumArt.width, cachedAlbumArt.height, cachedAlbumArt.pixels, 0, cachedAlbumArt.width);
+        cachedAlbumArt.updatePixels();
+        cachedAlbumArtDirectory = parent.getPath();
+        return cachedAlbumArt;
     }
     catch (Exception e)
     {
@@ -46,7 +50,7 @@ PImage searchForAlbumArt(String filePath)
         if (path.endsWith(".jpg") || path.endsWith(".png") || path.endsWith(".jpeg"))
         {
             cachedAlbumArt = loadImage(directory[i].getPath());
-            cachedAlbumArtDirectory = path;
+            cachedAlbumArtDirectory = child.getParentFile().getPath();
             return cachedAlbumArt;
         }
     }
