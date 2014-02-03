@@ -56,6 +56,7 @@ PImage searchForAlbumArt(String filePath)
             return cachedAlbumArt;
         }
     }
+    g.removeCache(cachedAlbumArt);
     return null;  
 }
 

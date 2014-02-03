@@ -28,25 +28,17 @@ class AudioWidget
     TextButton seek;
     TextButton vol;
     
+    PGraphicsButton play;
+    PGraphicsButton pause;
+    PGraphicsButton stop;
+    
     // Bar seekBar;
     // Bar volBar;
     float barX;
     float barWidth;        
     float barY;
     float barHeight;
-    
-    float playPauseX;
-    float playPauseY;
-    float playPauseWidth;
-    float playPauseHeight;
-    
-    float pauseX;
-    float pauseWidth;
-    
-    float stopX;
-    float stopY;
-    float stopSideLength;
-    
+        
     PImage ID3AlbumArt;
     PImage defaultArt;
     
@@ -83,13 +75,106 @@ class AudioWidget
         // int[] spectrumRanges = new int[] {200, 450, 900, 1350, 2000, 3600};
         int[] spectrumRanges = new int[] {600, 1200, 2000, 3600, 4800, 6400};
         float[] spectrumBoost = new float[] {0.04, 0.07, 0.09, 0.15, 0.15, 0.15};
-        // float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+        // float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};        
         
         titleFontSize = (int) (widgetHeight / 3.5);
         artistFontSize = (int) (widgetHeight / 6.0);
         barFontSize = (int) (widgetHeight / 12.0);
+                                       
+        visMode = States.AUDIO_SPECTRUM;
+        barMode = States.BAR_SEEK;
         
-        /* Text button initialize. */
+        initButtons();
+        
+        volume = 0.0;
+        
+        /* Bars. */
+        barX = seek.getX() + seek.getWidth() + seek.getWidth() / 4.0;
+        barWidth = x + widgetWidth - barX;
+        barY = seek.getY() + seek.getHeight() / 1.4;
+        barHeight = seek.getHeight() / 15.0;
+        
+        initVisualizations(spectrumRanges, spectrumBoost);
+    }
+    
+    void listen(AudioSource input)
+    {
+        this.input = input;
+        wave.listen(input);
+        spectrum.listen(input);
+        if (input instanceof AudioPlayer)
+            ((AudioPlayer) input).setGain(volume);
+    }
+    
+    private void initButtons()
+    {
+        initPGraphicsButtons();
+        initTextButtons();
+    }
+    
+    private void initPGraphicsButtons()
+    {
+        float playX = x + ID3AlbumArt.width / 2.6;
+        float playY = y + widgetHeight * 1.095;
+        float playWidth = ID3AlbumArt.width / 2.25 - ID3AlbumArt.width / 2.75;
+        float playHeight = widgetHeight * 0.1;
+                
+        float stopX = x + ID3AlbumArt.width / 1.85;
+        float stopY = y + widgetHeight * 1.1;
+        float stopSideLength = widgetHeight * 0.08;
+        
+        float pauseWidth = stopSideLength / 4.0;
+                      
+                      
+        /* Initialize the PLAY PGraphicsButton. */
+        PGraphics dimPlay = createGraphics((int) playWidth + 1, (int) playHeight + 1);
+        PGraphics highlightPlay = createGraphics((int) playWidth + 1, (int) playHeight + 1);
+        
+        dimPlay.beginDraw(); dimPlay.noStroke(); dimPlay.fill(200, 150);
+        dimPlay.triangle(0, 0, 0, playHeight, playWidth, playHeight / 2);
+        dimPlay.endDraw();
+        
+        highlightPlay.beginDraw(); highlightPlay.noStroke(); highlightPlay.fill(255);
+        highlightPlay.triangle(0, 0, 0, playHeight, playWidth, playHeight / 2);
+        highlightPlay.endDraw();
+  
+        play = new PGraphicsButton(playX, playY, dimPlay, highlightPlay);
+        
+        
+        /* Initialize the PAUSE PGraphicsButton. */
+        PGraphics dimPause = createGraphics((int) playWidth + 1, (int) playHeight + 1);
+        PGraphics highlightPause = createGraphics((int) playWidth + 1, (int) playHeight + 1);
+        
+        dimPause.beginDraw(); dimPause.noStroke(); dimPause.fill(200, 150);
+        dimPause.rect(0, 0, pauseWidth, stopSideLength);
+        dimPause.rect(stopSideLength / 1.5, 0, pauseWidth, stopSideLength);
+        dimPause.endDraw();
+        
+        highlightPause.beginDraw(); highlightPause.noStroke(); highlightPause.fill(255);
+        highlightPause.rect(0, 0, pauseWidth, stopSideLength);
+        highlightPause.rect(stopSideLength / 1.5, 0, pauseWidth, stopSideLength);
+        highlightPause.endDraw();
+        
+        pause = new PGraphicsButton(playX, stopY, dimPause, highlightPause);
+      
+      
+        /* Initialize the STOP PGraphicsButton. */
+        PGraphics dimStop = createGraphics((int) stopSideLength + 1, (int) stopSideLength + 1);
+        PGraphics highlightStop = createGraphics((int) stopSideLength + 1, (int) stopSideLength + 1);
+        
+        dimStop.beginDraw(); dimStop.noStroke(); dimStop.fill(200, 150);
+        dimStop.rect(0, 0, stopSideLength, stopSideLength);
+        dimStop.endDraw();
+        
+        highlightStop.beginDraw(); highlightStop.noStroke(); highlightStop.fill(255);
+        highlightStop.rect(0, 0, stopSideLength, stopSideLength);
+        highlightStop.endDraw();
+        
+        stop = new PGraphicsButton(stopX, stopY, dimStop, highlightStop);
+    }
+    
+    private void initTextButtons()
+    {     
         previous = new TextButton(x, y + widgetHeight, meiryo, artistFontSize, "< <");
             previous.setColor(200);
             previous.setDimColor(200);
@@ -105,51 +190,7 @@ class AudioWidget
         vol = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "vol.");
             vol.setColor(200);
             vol.setDimColor(200);
-            vol.setHighlightColor(255);
-        
-        /* Buttons. */         
-        playPauseX = x + ID3AlbumArt.width / 2.75;
-        playPauseY = y + widgetHeight * 1.09;
-        playPauseWidth = x + ID3AlbumArt.width / 2.25 - playPauseX;
-        playPauseHeight = y + widgetHeight * 1.19 - playPauseY;
-        
-        stopX = x + ID3AlbumArt.width / 1.85;
-        stopY = y + widgetHeight * 1.1;
-        stopSideLength = widgetHeight * 0.08;
-        
-        pauseX = playPauseX + stopSideLength / 1.5;
-        pauseWidth = stopSideLength / 4.0;
-                
-        visMode = States.AUDIO_SPECTRUM;
-        barMode = States.BAR_SEEK;
-        
-        volume = 0.0;
-        
-        /* Bars. */
-        barX = seek.getX() + seek.getWidth() + seek.getWidth() / 4.0;
-        barWidth = x + widgetWidth - barX;
-        barY = seek.getY() + seek.getHeight() / 1.4;
-        barHeight = seek.getHeight() / 15.0;
-        
-        initVisualizations(spectrumRanges, spectrumBoost);
-
-        /*   
-            spectrum = new AudioSpectrumVisualizer(0, width, 0, height, 3, 30, false);
-            spectrum.listen(in);
-            spectrum.setSmooth(0.85);
-            spectrum.section(spectrumRanges);
-            spectrum.setSensitivities(spectrumBoost);   
-            spectrum.setDividerWidth(3);
-        */
-    }
-    
-    void listen(AudioSource input)
-    {
-        this.input = input;
-        wave.listen(input);
-        spectrum.listen(input);
-        if (input instanceof AudioPlayer)
-            ((AudioPlayer) input).setGain(volume);
+            vol.setHighlightColor(255);        
     }
     
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
@@ -232,31 +273,28 @@ class AudioWidget
             drawVolumeBar();
         }
         
-        // draw play
         if ( !((AudioPlayer) input).isPlaying() )
         {
-            fill(200, 150);
-            if (playMouseOver())
-                fill(255);
-            triangle(playPauseX, playPauseY, 
-                     playPauseX, playPauseY + playPauseHeight, 
-                     playPauseX + playPauseWidth, playPauseY + playPauseHeight / 2.0);
+            if (play.mouseOver())
+                play.highlight();
+            else
+                play.dim();
+            play.draw();
         }
         else
         {        
-            // draw pause
-            fill(200, 150);
-            if (pauseMouseOver())
-                fill(255);
-            rect(playPauseX, stopY, pauseWidth, stopSideLength);
-            rect(pauseX, stopY, pauseWidth, stopSideLength);
+            if (pause.mouseOver())
+                pause.highlight();
+            else
+                pause.dim();
+            pause.draw();
         }
         
-        // draw stop
-        fill(200, 150);
-        if (stopMouseOver())
-            fill(255);
-        rect(stopX, stopY, stopSideLength, stopSideLength);
+        if (stop.mouseOver())
+            stop.highlight();
+        else
+            stop.dim();
+        stop.draw();
     }
     
     void drawSeekBar()
@@ -404,32 +442,6 @@ class AudioWidget
             forward.dim();  
     }
     
-    boolean playMouseOver()
-    {
-        if ( !((AudioPlayer) input).isPlaying() &&
-            mouseX >= playPauseX && mouseX <= playPauseX + playPauseWidth &&
-            mouseY >= playPauseY && mouseY <= playPauseY + playPauseHeight)
-            return true;
-        return false;  
-    }
-    
-    boolean pauseMouseOver()
-    {
-        if ( ((AudioPlayer) input).isPlaying() &&
-            mouseX >= playPauseX && mouseX <= playPauseX + playPauseWidth &&
-            mouseY >= playPauseY && mouseY <= playPauseY + playPauseHeight)
-            return true;
-        return false;  
-    }
-    
-    boolean stopMouseOver()
-    {
-        if ( mouseX >= stopX && mouseX <= stopX + stopSideLength &&
-             mouseY >= stopY && mouseY <= stopY + stopSideLength)
-             return true;
-        return false;
-    }
-    
     void registerClick()
     {
         if (mouseButton == LEFT)
@@ -456,7 +468,7 @@ class AudioWidget
             {
                 loadNextSong();
             }
-            else if (playMouseOver())
+            else if (play.mouseOver() && input instanceof AudioPlayer && !((AudioPlayer) input).isPlaying())
             {
                 /* Hack to check if song is over but not paused. Minim doesn't have proper working functionality to detect this. */
                 if ( !manualPlayerPause )
@@ -464,12 +476,12 @@ class AudioWidget
                 ((AudioPlayer) input).play();
                 manualPlayerPause = false;
             }
-            else if (pauseMouseOver())
+            else if (pause.mouseOver() && input instanceof AudioPlayer)
             {
                 ((AudioPlayer) input).pause();
                 manualPlayerPause = true;
             }
-            else if (stopMouseOver())
+            else if (stop.mouseOver() && input instanceof AudioPlayer)
             {
                  ((AudioPlayer) input).pause();
                  ((AudioPlayer) input).rewind();
