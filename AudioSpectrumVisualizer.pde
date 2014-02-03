@@ -165,7 +165,8 @@ class AudioSpectrumVisualizer
      */
     float modifyAmp(float amp)
     {
-        return log(amp) / log(2);
+        // return log(amp) / log(2);
+        return amp;
     }
     
     /*

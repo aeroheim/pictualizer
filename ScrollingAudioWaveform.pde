@@ -80,24 +80,24 @@ class ScrollingAudioWaveform
             
             for(int i = 0; i < amps.length; i++)
             {  
-                int offsetPos = round(amps[i].length) * i;
+                int offsetPos = (int) amps[i].length * i;
                 /* Generate the new audio sample each frame and draw it. */
-                if ( i == amps.length - 1)
+                if ( i == amps.length - 1 )
                 {
                     /* Divide buffer spectrum into individual unit size. */
                     float bufferUnit = round(maxSampleBuffer / amps[i].length);
                     /* Store and draw the audio samples. */
-                    for(int j = 0; j < amps[i].length - 2; j++)
+                    for(int j = 0; j < amps[i].length - 1; j++)
                     {
                         /* Rounding occurs due to dealing with floats, therefore handle out of bounds sample requests. */
-                        int sampleBuffer = checkSampleRange((int) (j * bufferUnit));
-                        int prevBuffer = j == 0 ? 0 : (int) ((j - 1) * bufferUnit);
+                        int sampleBuffer = checkSampleRange((int) ((j + 1) * bufferUnit));
+                        int prevBuffer = (int) (j * bufferUnit);
     
                         /* Calculate amp for current sample. */
                         amps[i][j] = checkAmpHeight(smoothSample(amps[i][j], modifySample(getAvgSample(prevBuffer, sampleBuffer)) * AMP_BOOST * HEIGHT_SCALE));
              
                         prevBuffer = sampleBuffer;
-                        sampleBuffer = checkSampleRange((int) ((j + 1) * bufferUnit));
+                        sampleBuffer = checkSampleRange((int) ((j + 2) * bufferUnit));
              
                         /* Calculate amp for next sample. */
                         amps[i][j+1] = checkAmpHeight(smoothSample(amps[i][j + 1], modifySample(getAvgSample(prevBuffer, sampleBuffer)) * AMP_BOOST * HEIGHT_SCALE));
@@ -149,7 +149,15 @@ class ScrollingAudioWaveform
     {
         float avgSample = 0.0;
         for(int i = low; i <= high; i++)
+        {
             avgSample += in.mix.get(i);
+            /*
+            if ( i % 2 == 0 )
+                avgSample += in.left.get(i);
+            else
+                avgSample += in.right.get(i);
+            */
+        }
         avgSample /= (high - low);
         return avgSample;
     }

@@ -24,7 +24,8 @@ PImage getAlbumArt(String filePath)
         if (temp == null)
             return searchForAlbumArt(filePath);
         
-        /* Found embedded album art, cache it and return it. */    
+        /* Found embedded album art, cache it and return it. */
+        g.removeCache(cachedAlbumArt);        
         cachedAlbumArt = new PImage(temp.getWidth(), temp.getHeight(), PConstants.ARGB);
         temp.getRGB(0, 0, cachedAlbumArt.width, cachedAlbumArt.height, cachedAlbumArt.pixels, 0, cachedAlbumArt.width);
         cachedAlbumArt.updatePixels();
@@ -49,6 +50,7 @@ PImage searchForAlbumArt(String filePath)
         /* Found album art. */
         if (path.endsWith(".jpg") || path.endsWith(".png") || path.endsWith(".jpeg"))
         {
+            g.removeCache(cachedAlbumArt);    
             cachedAlbumArt = loadImage(directory[i].getPath());
             cachedAlbumArtDirectory = child.getParentFile().getPath();
             return cachedAlbumArt;

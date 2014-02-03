@@ -80,18 +80,32 @@ class AudioWidget
         generateID3AlbumArt();
         generateMetaData();
         
-        int[] spectrumRanges = new int[] {200, 450, 900, 1350, 1800, 2400};
-        float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+        // int[] spectrumRanges = new int[] {200, 450, 900, 1350, 2000, 3600};
+        int[] spectrumRanges = new int[] {600, 1200, 2000, 3600, 4800, 6400};
+        float[] spectrumBoost = new float[] {0.04, 0.07, 0.09, 0.15, 0.15, 0.15};
+        // float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
         
         titleFontSize = (int) (widgetHeight / 3.5);
         artistFontSize = (int) (widgetHeight / 6.0);
         barFontSize = (int) (widgetHeight / 12.0);
         
         /* Text button initialize. */
-        previous = new TextButton(meiryo, artistFontSize, "< <", x, y + widgetHeight, 200);
-        forward = new TextButton(meiryo, artistFontSize, "> >", x + ID3AlbumArt.width - previous.getWidth(), y + widgetHeight, 200);
-        seek = new TextButton(meiryo, artistFontSize, "seek", x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, 200);
-        vol = new TextButton(meiryo, artistFontSize, "vol.", x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, 200);
+        previous = new TextButton(x, y + widgetHeight, meiryo, artistFontSize, "< <");
+            previous.setColor(200);
+            previous.setDimColor(200);
+            previous.setHighlightColor(255);
+        forward = new TextButton(x + ID3AlbumArt.width - previous.getWidth(), y + widgetHeight, meiryo, artistFontSize, "> >");
+            forward.setColor(200);
+            forward.setDimColor(200);
+            forward.setHighlightColor(255);
+        seek = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "seek");
+            seek.setColor(200);
+            seek.setDimColor(200);
+            seek.setHighlightColor(255);
+        vol = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "vol.");
+            vol.setColor(200);
+            vol.setDimColor(200);
+            vol.setHighlightColor(255);
         
         /* Buttons. */         
         playPauseX = x + ID3AlbumArt.width / 2.75;
@@ -105,16 +119,14 @@ class AudioWidget
         
         pauseX = playPauseX + stopSideLength / 1.5;
         pauseWidth = stopSideLength / 4.0;
-        
-        
-        
+                
         visMode = States.AUDIO_SPECTRUM;
         barMode = States.BAR_SEEK;
         
         volume = 0.0;
         
         /* Bars. */
-        barX = seek.getEndX() + seek.getWidth() / 4.0;
+        barX = seek.getX() + seek.getWidth() + seek.getWidth() / 4.0;
         barWidth = x + widgetWidth - barX;
         barY = seek.getY() + seek.getHeight() / 1.4;
         barHeight = seek.getHeight() / 15.0;
@@ -145,17 +157,20 @@ class AudioWidget
         /* Waveform visualizer. */
         wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.25 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 4.0));
         wave.setTimeOffset(18);
-        wave.setAmpBoost(0.25);
+        wave.setAmpBoost(0.21);
         wave.setAlpha(0);
         wave.setDelta(-15);
-        // wave.setSmooth(0.0);
+        // wave.setSmooth(0.85);
       
         /* Spectrum visualizer. */
-        spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 2.0, y + widgetHeight, 6, 30, false);
+        spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 90, false);
+        // spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 30, false);
         spectrum.setSmooth(0.85);
+        spectrum.setAmpBoost(0.25);
         spectrum.section(spectrumRanges);
         spectrum.setSensitivities(spectrumBoost);   
-        spectrum.setDividerWidth((int) (widgetWidth / 100.0));
+        spectrum.setDividerWidth((int) (widgetWidth / 150.0));
+        // spectrum.setDividerWidth((int) (widgetWidth / 100.0));
         spectrum.setDelta(15);
     }
     
@@ -333,20 +348,20 @@ class AudioWidget
             metaData = ((AudioPlayer) input).getMetaData();
             /* Generate metadata for song title. */
             if (metaData.title().length() != 0)
-                title = new ScrollingText(metaData.title(), meiryo, titleFontSize, startX, endX, y);
+                title = new ScrollingText(startX, y, endX, meiryo, titleFontSize, metaData.title());
             else
-                title = new ScrollingText(getFileName(metaData.fileName()), meiryo, titleFontSize, startX, endX, y);
+                title = new ScrollingText(startX, y, endX, meiryo, titleFontSize, getFileName(metaData.fileName()));
             
             /* Generate metadata for song artist. */  
             if (metaData.author().length() != 0)
-                artist = new ScrollingText(metaData.author(), meiryo, artistFontSize, startX, endX, y + textAscent() + textDescent() / 2);
+                artist = new ScrollingText(startX, y + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, metaData.author());
             else
-                artist = new ScrollingText("unknown", meiryo, artistFontSize, startX, endX, y + textAscent() + textDescent() / 2);
+                artist = new ScrollingText(startX, y + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "unknown");
         }
         else
         {
-            title = new ScrollingText("input", meiryo, titleFontSize, startX, endX, y);
-            artist = new ScrollingText("audio input", meiryo, artistFontSize, startX, endX, y + textAscent() + textDescent() / 2);
+            title = new ScrollingText(startX, y, endX, meiryo, titleFontSize, "input");
+            artist = new ScrollingText(startX, y + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "audio input");
         }
             
         /* Set default scroll options. */
@@ -357,20 +372,36 @@ class AudioWidget
     }
 
 
-    void mouseOver()
+    public void mouseOver()
     {
         if (visMode == States.AUDIO_SPECTRUM)
             spectrum.mouseOver();
         else
             wave.mouseOver();
-            
-        if (barMode == States.BAR_SEEK)
-            seek.mouseOver();
-        else
-            vol.mouseOver();
         
-        previous.mouseOver();
-        forward.mouseOver();   
+        /* Mouse over 'seek' button. */
+        if (barMode == States.BAR_SEEK && seek.mouseOver())
+            seek.highlight();
+        else
+            seek.dim();
+        
+        /* Mouse over 'vol.' button. */
+        if (barMode == States.BAR_VOL && vol.mouseOver())
+            vol.highlight();
+        else
+            vol.dim();
+        
+        /* Mouse over '<<' button. */
+        if (previous.mouseOver())
+            previous.highlight();
+        else
+            previous.dim();
+        
+        /* Mouse over '>>' button. */
+        if (forward.mouseOver())
+            forward.highlight();
+        else
+            forward.dim();  
     }
     
     boolean playMouseOver()

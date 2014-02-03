@@ -5,76 +5,121 @@
  *  time intervals for scrolling can be specified.
  */
  
-class ScrollingText
-{
-    String text;
-    PFont font;
-    int size;
-     
-    float x;
-    float y;
-    float scrollingTextWidth;
+public class ScrollingText extends PGraphicObject
+{     
+    private PFont font;
+    private String text;
+    private int fontSize;    
     
-    float translatedWidth;
-    float scrollWidth;
-     
-    float scrollSpeed;
-    int scrollPause;
-    float frameElapsed;
+    private float translatedWidth;
+    private float scrollWidth;     
+    private float scrollSpeed;
+    private float frameElapsed;
+    private int scrollPause;
     
-    PGraphics textBuffer;
-    
-    ScrollingText(String text, PFont font, int size, float x, float scrollingTextWidth, float y)
+    private PGraphics textBuffer;
+   
+    /*
+     *  The default constructor is disabled for this class,
+     *  since there is no default font.
+     */
+    private ScrollingText()
     {
-        this.text = text;
+    } 
+    
+    /*
+     *  Constructor that initializes position and text.  
+     */
+    public ScrollingText(float pX, float pY, float pWidth, PFont font, int fontSize, String text)
+    {
+        textFont(font, fontSize);
+        resize(pWidth, textAscent() + textDescent());
+        setLocation(pX, pY);
         this.font = font;
-        this.size = size;
-        this.x = x;
-        this.scrollingTextWidth = scrollingTextWidth;
-        this.y = y;
+        this.fontSize = fontSize;
+        this.text = text;
+        
         frameElapsed = 0;
         
         /* Calculate & initialize scroll values. */
         scrollSpeed = 0.0;
         scrollPause = 0;
         translatedWidth = 0.0;
-        textFont(font, size);
-        scrollWidth = textWidth(text) - scrollingTextWidth;
+        scrollWidth = textWidth(text) - pWidth;
         
         /* Create the buffer to draw on. */
-        textBuffer = createGraphics((int) scrollingTextWidth, (int) (textDescent() + textAscent()));
+        textBuffer = createGraphics((int) pWidth, (int) (textDescent() + textAscent()));
         textBuffer.beginDraw();
         textBuffer.endDraw();
         drawToBuffer();
     }
     
-    void setScrollSpeed(float speed)
+    /*
+     *  resize() the ScrollingText by specifing a new font size and width.
+     *  The height of the internal graphics buffer will be updated according to the 
+     *  new font size, and the width will be updated to the specified value passed in.
+     */
+    public void resize(int fontSize, float pWidth)
     {
-        scrollSpeed = speed;
+        this.fontSize = fontSize;
+        textFont(font, fontSize);
+        textBuffer = createGraphics((int) pWidth, (int) (textDescent() + textAscent()));
+        textBuffer.beginDraw();
+        textBuffer.endDraw();
+        drawToBuffer();
     }
-    
     
     /*
-     *  Time to pause the scroll once reaching an end.
-     *  Time is measured in seconds.
+     *  Draw this ScrollingText object's buffer onto the main Processing buffer.
      */
-    void setScrollPause(int scrollPause)
+    public void draw()
     {
-        this.scrollPause = scrollPause; 
-    }
-    
-    void draw()
-    {
-        image(textBuffer, x, y);
+        image(textBuffer, getX(), getY());
         /* Scroll only if necessary. */
         if (scrollWidth > 0)
             scrollText();
     }
+        
+    /*
+     *  Set the speed at which the text scrolls at. 
+     */
+    public void setScrollSpeed(float scrollSpeed)
+    {
+        this.scrollSpeed = scrollSpeed;
+    }
+        
+    /*
+     *  Set the time to pause the scroll once reaching an end.
+     *  Time is measured in seconds.
+     */
+    public void setScrollPause(int scrollPause)
+    {
+        this.scrollPause = scrollPause; 
+    }
     
-    void drawToBuffer()
+    /*
+     *  Return the current speed that this ScrollingText scrolls at.
+     */
+    public float getScrollSpeed()
+    {
+        return scrollSpeed;
+    }
+    
+    /*
+     *  Returns the current pause duration that this ScrollingText uses.
+     */
+    public float getScrollPause()
+    {
+        return scrollPause; 
+    }
+    
+    /*
+     *  Internal method that draws to the ScrollingText buffer.
+     */
+    private void drawToBuffer()
     {
         /* Set up font related properties first. */
-        textBuffer.textFont(font, size);
+        textBuffer.textFont(font, fontSize);
         textBuffer.textAlign(LEFT, TOP);
         
         /* Always clear previous frame before re-drawing. */
@@ -87,7 +132,11 @@ class ScrollingText
         textBuffer.endDraw();  
     }
     
-    void scrollText()
+    /*
+     *  Internal method that scrolls the text. Uses scrollSpeed to control
+     *  the scrolling speed, and scrollPause as the duration to pause when scrolled to the end.
+     */
+    private void scrollText()
     {
         int compare1 = Float.compare(abs(translatedWidth), scrollWidth);
         int compare2 = Float.compare(translatedWidth, 0.0);
@@ -115,4 +164,5 @@ class ScrollingText
             translatedWidth += scrollSpeed;
         }
     }
+    
 }
