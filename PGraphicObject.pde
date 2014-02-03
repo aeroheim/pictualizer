@@ -78,6 +78,16 @@ public abstract class PGraphicObject
             return true;
         return false;
     }
+    
+    /*
+     *  isClicked() returns whether or not the PGraphicObject has been clicked on or not.
+     */
+    public boolean isClicked()
+    {
+        if (mouseButton == LEFT && mouseOver())
+            return true;
+        return false;
+    }
         
     /* 
      *  resize() will resize the PGraphicObject given new positional values.
