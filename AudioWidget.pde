@@ -27,13 +27,16 @@ class AudioWidget
     TextButton previous;
     TextButton seek;
     TextButton vol;
+    TextButton repeat;
+    TextButton shuffle;
     
     PGraphicsButton play;
     PGraphicsButton pause;
     PGraphicsButton stop;
     
-    // Bar seekBar;
-    // Bar volBar;
+    ProgressBar seekBar;
+    ProgressBar volBar;
+    
     float barX;
     float barWidth;        
     float barY;
@@ -44,6 +47,7 @@ class AudioWidget
     
     int titleFontSize;
     int artistFontSize;
+    int modeFontSize;
     int barFontSize;
     
     String songLength;
@@ -79,21 +83,17 @@ class AudioWidget
         
         titleFontSize = (int) (widgetHeight / 3.5);
         artistFontSize = (int) (widgetHeight / 6.0);
+        modeFontSize = (int) (widgetHeight / 8.0);
         barFontSize = (int) (widgetHeight / 12.0);
                                        
         visMode = States.AUDIO_SPECTRUM;
         barMode = States.BAR_SEEK;
-        
-        initButtons();
-        
+                
         volume = 0.0;
         
-        /* Bars. */
-        barX = seek.getX() + seek.getWidth() + seek.getWidth() / 4.0;
-        barWidth = x + widgetWidth - barX;
-        barY = seek.getY() + seek.getHeight() / 1.4;
-        barHeight = seek.getHeight() / 15.0;
-        
+        initButtons();
+        initBars();
+               
         initVisualizations(spectrumRanges, spectrumBoost);
     }
     
@@ -103,7 +103,10 @@ class AudioWidget
         wave.listen(input);
         spectrum.listen(input);
         if (input instanceof AudioPlayer)
+        {
             ((AudioPlayer) input).setGain(volume);
+            volBar.setCurrentValue(volume + 80);
+        }
     }
     
     private void initButtons()
@@ -173,24 +176,54 @@ class AudioWidget
         stop = new PGraphicsButton(stopX, stopY, dimStop, highlightStop);
     }
     
+    private void initBars()
+    {
+        float barX = seek.getX() + seek.getWidth() * 1.25;
+        float barY = seek.getY() + seek.getHeight() / 1.4;
+        float barWidth = x + widgetWidth - (barX * 1.2);
+        float barHeight = seek.getHeight() / 15.0;
+        
+        seekBar = new ProgressBar(barX, barY, barWidth, barHeight, 0, 0);
+        seekBar.setColor(color(175));
+        seekBar.setBackgroundColor(color(200, 35));
+        
+        volBar = new ProgressBar(barX, barY, barWidth, barHeight, 0, 94);
+        volBar.setColor(color(175));
+        volBar.setBackgroundColor(color(200, 35));
+    }
+    
     private void initTextButtons()
     {     
         previous = new TextButton(x, y + widgetHeight, meiryo, artistFontSize, "< <");
             previous.setColor(200);
             previous.setDimColor(200);
             previous.setHighlightColor(255);
+            
         forward = new TextButton(x + ID3AlbumArt.width - previous.getWidth(), y + widgetHeight, meiryo, artistFontSize, "> >");
             forward.setColor(200);
             forward.setDimColor(200);
             forward.setHighlightColor(255);
+            
         seek = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "seek");
             seek.setColor(200);
             seek.setDimColor(200);
             seek.setHighlightColor(255);
+            
         vol = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "vol.");
             vol.setColor(200);
             vol.setDimColor(200);
-            vol.setHighlightColor(255);        
+            vol.setHighlightColor(255);
+            
+        repeat = new TextButton(x + widgetWidth * (8.95/10.0), y + widgetHeight * 1.05, meiryo, modeFontSize, "re");
+            repeat.setColor(200);
+            repeat.setDimColor(200);
+            repeat.setHighlightColor(255);
+            
+        textFont(meiryo, modeFontSize);
+        shuffle = new TextButton(x + widgetWidth - textWidth("shuff"), y + widgetHeight * 1.05, meiryo, modeFontSize, "shuff");
+            shuffle.setColor(200);
+            shuffle.setDimColor(200);
+            shuffle.setHighlightColor(255);        
     }
     
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
@@ -264,13 +297,27 @@ class AudioWidget
         forward.draw(); 
         if (barMode == States.BAR_SEEK)
         {
+            float currentMillisPos = ((AudioPlayer) in).position();
             seek.draw();
-            drawSeekBar();
+            seekBar.setCurrentValue(currentMillisPos);
+            seekBar.draw();
+            
+            /* Draw seek bar text. */
+            int sec  = (int) (currentMillisPos / 1000) % 60 ;
+            int min  = (int) ((currentMillisPos / (1000*60)) % 60);
+            int hr   = (int) ((currentMillisPos / (1000*60*60)) % 24);
+            
+            textFont(centuryGothic, barFontSize);
+            text(String.format("%02d:%02d:%02d", hr, min, sec)+" / "+songLength, seekBar.getX(), seek.getY() + textAscent() * .75);
         }
         else
         {
             vol.draw();
-            drawVolumeBar();
+            volBar.draw();
+            
+            /* Draw volume bar text. */
+            textFont(centuryGothic, barFontSize);
+            text(String.format("%.2f", ((AudioPlayer) input).getGain())+" dB", volBar.getX(), seek.getY() + textAscent() * .75);          
         }
         
         if ( !((AudioPlayer) input).isPlaying() )
@@ -295,29 +342,11 @@ class AudioWidget
         else
             stop.dim();
         stop.draw();
+        
+        repeat.draw();
+        shuffle.draw();
     }
-    
-    void drawSeekBar()
-    {   
-        /* Draw background seek bar. */
-        noStroke();
-        fill(200, 35);
-        rect(barX, barY, barWidth, barHeight);
         
-        /* Draw current seek bar. */
-        float currentMillisPos = ((AudioPlayer) in).position();
-        float percent = currentMillisPos / ((AudioPlayer) in).length();
-        fill(175);
-        rect(barX, barY, percent * barWidth, barHeight);
-        
-        int sec  = (int) (currentMillisPos / 1000) % 60 ;
-        int min  = (int) ((currentMillisPos / (1000*60)) % 60);
-        int hr   = (int) ((currentMillisPos / (1000*60*60)) % 24);
-        
-        textFont(centuryGothic, barFontSize);
-        text(String.format("%02d:%02d:%02d", hr, min, sec)+" / "+songLength, barX, seek.getY() + textAscent() * .75);
-    }
-    
     void drawVolumeBar()
     {
         /* Draw background volume bar. */
@@ -382,6 +411,7 @@ class AudioWidget
             int songHr   = (int)((songMaxLength / (1000 * 60 * 60)) % 24);
             
             songLength = String.format("%02d:%02d:%02d", songHr, songMin, songSec);
+            seekBar.setMaxValue(songMaxLength);
             
             metaData = ((AudioPlayer) input).getMetaData();
             /* Generate metadata for song title. */
@@ -439,7 +469,19 @@ class AudioWidget
         if (forward.mouseOver())
             forward.highlight();
         else
-            forward.dim();  
+            forward.dim();
+            
+        /* Mouse over 'repeat' button. */
+        if (repeat.mouseOver())
+            repeat.highlight();
+        else
+            repeat.dim();
+        
+        /* Mouse over 'shuffle' button. */
+        if (shuffle.mouseOver())
+            shuffle.highlight();
+        else
+            shuffle.dim();
     }
     
     void registerClick()
@@ -496,10 +538,10 @@ class AudioWidget
                     barMode = States.BAR_SEEK;
             }
             /* Clicked on bar, calculate position/volume to seek to. */
-            else if (input instanceof AudioPlayer && 
-                     mouseX >= barX && mouseX <= barX + barWidth && mouseY >= barY - barHeight * 2 && mouseY <= barY + barHeight * 2)
+            else if (input instanceof AudioPlayer && mouseX >= seekBar.getX() && mouseX <= seekBar.getX() + seekBar.getWidth() &&
+                         mouseY >= seekBar.getY() - seekBar.getHeight() * 2 && mouseY <= seekBar.getY() + seekBar.getHeight() * 2)
             {
-                float percent = (mouseX - barX) / barWidth;
+                float percent = (mouseX - seekBar.getX()) / seekBar.getWidth();
                 /* Seek bar. */
                 if ( barMode == States.BAR_SEEK )
                     ((AudioPlayer) input).cue((int) (percent * ((AudioPlayer) input).length()));
@@ -508,6 +550,7 @@ class AudioWidget
                 {
                     float newGain = 94 * percent - 80;
                     ((AudioPlayer) input).setGain(newGain);
+                    volBar.setCurrentValue(newGain + 80);
                     volume = newGain;
                 }
             }
