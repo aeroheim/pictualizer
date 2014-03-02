@@ -129,7 +129,7 @@ class AudioSpectrumVisualizer
                 {
                     textFont(centuryGothic, width / 200.0);
                     textAlign(LEFT);
-                    text(currentFreq+"Hz", spectrumX + (spectrumWidth / amps.length + 1) * i, spectrumY - amps[i] - 2);
+                    text(currentFreq+"Hz", spectrumX + (((int)spectrumWidth / amps.length) + 1) * i, spectrumY - amps[i] - 2);
                 }
                 
                 prevFreq = currentFreq;
@@ -140,15 +140,16 @@ class AudioSpectrumVisualizer
                     rect(spectrumX + (spectrumWidth / amps.length) * i, spectrumY, barWidth - dividerWidth, -amps[i]);
                 }
                 else
-                    for(int j = (int) ((maxSpectrumHeight - amps[i] - 1) * spectrumWidth); j < maxSpectrumHeight * spectrumWidth - 1; j += spectrumWidth)
+                    for(int j = (int) ((maxSpectrumHeight - amps[i]) * spectrumWidth); j < maxSpectrumHeight * spectrumWidth - 1; j += spectrumWidth)
                     {
-                        int coordinate = j + ((((int)spectrumWidth / amps.length) + 1) * i);
-                        if ( coordinate > (width * height))
-                            print("coordinate: "+coordinate+"\n");
+                        int coordinate = j + ((((int)spectrumWidth / amps.length) + 1) * i);  
 
-                        if ( i == amps.length - 1)
+                        /*
+                        if ( i == amps.length - 1 && coordinate >= (width * height))
                             System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, (int) spectrumWidth - (((int)spectrumWidth / amps.length + 1) * i));
                         else
+                        */
+                        if ( coordinate + barWidth <= (width * height) )
                             System.arraycopy(srcBuff.pixels, coordinate, destBuff.pixels, coordinate, barWidth);
 
                     }

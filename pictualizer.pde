@@ -67,18 +67,19 @@ void setup()
     
         // favorite ranges : 450, 1350, 2400
         int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
-        float[] spectrumSensitivities = new float[] {0.08, 0.1, 0.1}; 
+        float[] spectrumSensitivities = new float[] {0.02, 0.02, 0.02}; 
         spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21, false);
         spectrumVisualizer.listen(in);
         spectrumVisualizer.setSmooth(0.9);
         spectrumVisualizer.section(spectrumFreqRanges);
         spectrumVisualizer.setSensitivities(spectrumSensitivities);   
-        spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
+        // spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
+        spectrumVisualizer.setDividerWidth(30);
         spectrumVisualizer.toggleBackgroundMode();
 
     
     // initialize fonts
-    meiryo = createFont("M+ 2p thin", 64, true);
+    meiryo = createFont("M+ 2p light", 64, true);
     centuryGothic = createFont("Century Gothic", 64, true);
     
     // initialize widget
@@ -112,7 +113,7 @@ void drawMain()
     tintBuffer.beginDraw();
     
     tintBuffer.image(img, 0, 0);
-    tintBuffer.tint(150, 90);
+    tintBuffer.tint(150);
     // spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */

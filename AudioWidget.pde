@@ -27,12 +27,12 @@ class AudioWidget
     TextButton previous;
     TextButton seek;
     TextButton vol;
-    TextButton repeat;
-    TextButton shuffle;
     
     PGraphicsButton play;
     PGraphicsButton pause;
     PGraphicsButton stop;
+    PGraphicsButton repeat;
+    PGraphicsButton shuffle;
     
     ProgressBar seekBar;
     ProgressBar volBar;
@@ -127,7 +127,13 @@ class AudioWidget
         float stopSideLength = widgetHeight * 0.08;
         
         float pauseWidth = stopSideLength / 4.0;
-                      
+        
+        float repeatX = x + ID3AlbumArt.width + widgetWidth / 20;
+        float repeatY = y + widgetHeight * 1.07;
+        float repeatWidth = playWidth + 5;
+        float repeatHeight = playHeight + 5;
+        float repeatRadius = widgetWidth / 100;
+                             
                       
         /* Initialize the PLAY PGraphicsButton. */
         PGraphics dimPlay = createGraphics((int) playWidth + 1, (int) playHeight + 1);
@@ -174,6 +180,53 @@ class AudioWidget
         highlightStop.endDraw();
         
         stop = new PGraphicsButton(stopX, stopY, dimStop, highlightStop);
+        
+        /* Initialize the REPEAT PGraphicsButton. */
+        PGraphics dimRepeat = createGraphics((int) repeatWidth, (int) repeatHeight);
+        PGraphics highlightRepeat = createGraphics((int) repeatWidth, (int) repeatHeight);
+        
+        dimRepeat.beginDraw(); dimRepeat.stroke(200, 150); dimRepeat.strokeWeight(repeatWidth / 10); dimRepeat.noFill();
+        dimRepeat.arc(repeatWidth / 2, repeatHeight / 2, repeatRadius * 2, repeatRadius * 2, QUARTER_PI, 2 * PI - QUARTER_PI);
+        dimRepeat.fill(200); dimRepeat.noStroke();
+        dimRepeat.triangle(repeatWidth/2 + repeatRadius/4, repeatHeight/2 - repeatRadius/4,
+                           repeatWidth/2 + 5 * repeatRadius/4, repeatHeight/2 - repeatRadius/4,
+                           repeatWidth/2 + repeatRadius, repeatHeight/2 - 5 * repeatRadius/4);
+        dimRepeat.endDraw();
+        
+        highlightRepeat.beginDraw(); highlightRepeat.stroke(255); highlightRepeat.strokeWeight(repeatWidth / 10); highlightRepeat.noFill();
+        highlightRepeat.arc(repeatWidth / 2, repeatHeight / 2, repeatRadius * 2, repeatRadius * 2, QUARTER_PI, 2 * PI - QUARTER_PI);
+        highlightRepeat.fill(255); highlightRepeat.noStroke();
+        highlightRepeat.triangle(repeatWidth/2 + repeatRadius/4, repeatHeight/2 - repeatRadius/4,
+                           repeatWidth/2 + 5 * repeatRadius/4, repeatHeight/2 - repeatRadius/4,
+                           repeatWidth/2 + repeatRadius, repeatHeight/2 - 5 * repeatRadius/4);
+        highlightRepeat.endDraw();
+        
+        repeat = new PGraphicsButton(repeatX, repeatY, dimRepeat, highlightRepeat);
+        
+        /* Initialize the SHUFFLE PGraphicsButton. */
+        float shuffleX = repeat.getX() + repeat.getWidth() + widgetWidth / 100;
+        float shuffleY = repeat.getY();
+        float shuffleWidth = repeatWidth;
+        float shuffleHeight = repeatHeight;
+        
+        PGraphics dimShuffle = createGraphics((int) shuffleWidth, (int) shuffleHeight);
+        PGraphics highlightShuffle = createGraphics((int) shuffleWidth, (int) shuffleHeight);
+        
+        dimShuffle.beginDraw(); dimShuffle.stroke(200, 150); dimShuffle.strokeWeight(shuffleWidth / 20); dimShuffle.noFill();
+        dimShuffle.line(0, shuffleHeight / 8, (3 * shuffleWidth) / 4, 0); dimShuffle.line(0, shuffleHeight, (3 * shuffleWidth) / 4, (7 * shuffleHeight) / 8);
+        dimShuffle.line(0, shuffleHeight / 8, 0, shuffleHeight); dimShuffle.line((3 * shuffleWidth) / 4, 0, (3 * shuffleWidth) / 4, shuffleHeight);
+        dimShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth, 0); dimShuffle.line(shuffleWidth / 2, shuffleHeight, shuffleWidth, (7 * shuffleHeight ) / 8);
+        dimShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth / 2, 0); dimShuffle.line(shuffleWidth, 0, shuffleWidth, (7 * shuffleHeight) / 8);
+        dimShuffle.endDraw();
+        
+        highlightShuffle.beginDraw(); highlightShuffle.stroke(255); highlightShuffle.strokeWeight(shuffleWidth / 20); highlightShuffle.noFill();
+        highlightShuffle.line(0, shuffleHeight / 8, (3 * shuffleWidth) / 4, 0); highlightShuffle.line(0, shuffleHeight, (3 * shuffleWidth) / 4, (7 * shuffleHeight) / 8);
+        highlightShuffle.line(0, shuffleHeight / 8, 0, shuffleHeight); highlightShuffle.line((3 * shuffleWidth) / 4, 0, (3 * shuffleWidth) / 4, shuffleHeight);
+        highlightShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth, 0); highlightShuffle.line(shuffleWidth / 2, shuffleHeight, shuffleWidth, (7 * shuffleHeight ) / 8);
+        highlightShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth / 2, 0); highlightShuffle.line(shuffleWidth, 0, shuffleWidth, (7 * shuffleHeight) / 8);
+        highlightShuffle.endDraw();
+        
+        shuffle = new PGraphicsButton(shuffleX, shuffleY, dimShuffle, highlightShuffle);                
     }
     
     private void initBars()
@@ -204,26 +257,15 @@ class AudioWidget
             forward.setDimColor(200);
             forward.setHighlightColor(255);
             
-        seek = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "seek");
+        seek = new TextButton(shuffle.getX() + widgetWidth / 30, y + widgetHeight, meiryo, artistFontSize, "seek");
             seek.setColor(200);
             seek.setDimColor(200);
             seek.setHighlightColor(255);
             
-        vol = new TextButton(x + ID3AlbumArt.width + widgetWidth / 20, y + widgetHeight, meiryo, artistFontSize, "vol.");
+        vol = new TextButton(shuffle.getX() + widgetWidth / 30, y + widgetHeight, meiryo, artistFontSize, "vol.");
             vol.setColor(200);
             vol.setDimColor(200);
             vol.setHighlightColor(255);
-            
-        repeat = new TextButton(x + widgetWidth * (8.95/10.0), y + widgetHeight * 1.05, meiryo, modeFontSize, "re");
-            repeat.setColor(200);
-            repeat.setDimColor(200);
-            repeat.setHighlightColor(255);
-            
-        textFont(meiryo, modeFontSize);
-        shuffle = new TextButton(x + widgetWidth - textWidth("shuff"), y + widgetHeight * 1.05, meiryo, modeFontSize, "shuff");
-            shuffle.setColor(200);
-            shuffle.setDimColor(200);
-            shuffle.setHighlightColor(255);        
     }
     
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
@@ -234,7 +276,7 @@ class AudioWidget
         wave.setAmpBoost(0.21);
         wave.setAlpha(0);
         wave.setDelta(-15);
-        // wave.setSmooth(0.85);
+        wave.setSmooth(0.25);
       
         /* Spectrum visualizer. */
         spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 90, false);
@@ -341,28 +383,13 @@ class AudioWidget
             stop.highlight();
         else
             stop.dim();
+            
         stop.draw();
-        
+       
         repeat.draw();
         shuffle.draw();
     }
         
-    void drawVolumeBar()
-    {
-        /* Draw background volume bar. */
-        noStroke();
-        fill(200, 35);
-        rect(barX, barY, barWidth, barHeight);
-        
-        /* Draw current volume bar. */
-        float percent = (((AudioPlayer) input).getGain() + 80) / 94;
-        fill(175);
-        rect(barX, barY, percent * barWidth, barHeight);
-        
-        textFont(centuryGothic, barFontSize);
-        text(((AudioPlayer) input).getGain()+" dB", barX, seek.getY() + textAscent() * .75);          
-    }
-    
     String getFileName(String filePath)
     {
         StringBuffer helper = new StringBuffer();
