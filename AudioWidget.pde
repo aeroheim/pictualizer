@@ -6,7 +6,7 @@
 
 import java.lang.String;
 
-class AudioWidget
+class AudioWidget // extends PGraphicObject
 {  
     float x;
     float y;
@@ -92,8 +92,7 @@ class AudioWidget
         volume = 0.0;
         
         initButtons();
-        initBars();
-               
+        initBars();              
         initVisualizations(spectrumRanges, spectrumBoost);
     }
     
@@ -129,7 +128,7 @@ class AudioWidget
         float pauseWidth = stopSideLength / 4.0;
         
         float repeatX = x + ID3AlbumArt.width + widgetWidth / 20;
-        float repeatY = y + widgetHeight * 1.07;
+        float repeatY = y + widgetHeight * 1.08;
         float repeatWidth = playWidth + 5;
         float repeatHeight = playHeight + 5;
         float repeatRadius = widgetWidth / 100;
@@ -204,26 +203,58 @@ class AudioWidget
         repeat = new PGraphicsButton(repeatX, repeatY, dimRepeat, highlightRepeat);
         
         /* Initialize the SHUFFLE PGraphicsButton. */
-        float shuffleX = repeat.getX() + repeat.getWidth() + widgetWidth / 100;
+        float shuffleX = repeat.getX() + repeat.getWidth() * 1.5;
         float shuffleY = repeat.getY();
-        float shuffleWidth = repeatWidth;
-        float shuffleHeight = repeatHeight;
+        int shuffleWidth = (int) repeatWidth;
+        int shuffleHeight = (int) repeatHeight;
+        
+        float shuffleHeightOffset = shuffleHeight / 5.0;
+        float shuffleArrowOffset = shuffleWidth / 5.0;
+        float shuffleMidpoint = (1.5 * shuffleWidth) / 5.0;
         
         PGraphics dimShuffle = createGraphics((int) shuffleWidth, (int) shuffleHeight);
         PGraphics highlightShuffle = createGraphics((int) shuffleWidth, (int) shuffleHeight);
         
-        dimShuffle.beginDraw(); dimShuffle.stroke(200, 150); dimShuffle.strokeWeight(shuffleWidth / 20); dimShuffle.noFill();
-        dimShuffle.line(0, shuffleHeight / 8, (3 * shuffleWidth) / 4, 0); dimShuffle.line(0, shuffleHeight, (3 * shuffleWidth) / 4, (7 * shuffleHeight) / 8);
-        dimShuffle.line(0, shuffleHeight / 8, 0, shuffleHeight); dimShuffle.line((3 * shuffleWidth) / 4, 0, (3 * shuffleWidth) / 4, shuffleHeight);
-        dimShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth, 0); dimShuffle.line(shuffleWidth / 2, shuffleHeight, shuffleWidth, (7 * shuffleHeight ) / 8);
-        dimShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth / 2, 0); dimShuffle.line(shuffleWidth, 0, shuffleWidth, (7 * shuffleHeight) / 8);
+        dimShuffle.beginDraw(); dimShuffle.stroke(200, 150); dimShuffle.strokeWeight(shuffleWidth / 15.0); dimShuffle.fill(200, 150);
+        dimShuffle.line(0, shuffleHeightOffset, shuffleMidpoint, shuffleHeightOffset);
+        dimShuffle.line(shuffleMidpoint, shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset, shuffleHeight - shuffleHeightOffset);
+        dimShuffle.line(shuffleMidpoint + shuffleArrowOffset, shuffleHeight - shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeight - shuffleHeightOffset);
+        dimShuffle.line(0, shuffleHeight - shuffleHeightOffset, shuffleMidpoint, shuffleHeight - shuffleHeightOffset);
+        
+        /* Add the groove in the shuffle icon. */
+        dimShuffle.line(shuffleMidpoint, shuffleHeight - shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset / 4, shuffleHeight - shuffleHeightOffset * 1.25);
+        dimShuffle.line(shuffleMidpoint + (3 * shuffleArrowOffset) / 4, shuffleHeightOffset * 1.25, shuffleMidpoint + shuffleArrowOffset, shuffleHeightOffset);
+                
+        dimShuffle.line(shuffleMidpoint + shuffleArrowOffset, shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeightOffset);
+        
+        dimShuffle.noStroke();
+        dimShuffle.triangle(shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeightOffset * 0.5,
+                            shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeightOffset * 1.5,
+                            shuffleWidth, shuffleHeightOffset);      
+        dimShuffle.triangle(shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeight - shuffleHeightOffset * 0.5,
+                            shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeight - shuffleHeightOffset * 1.5,
+                            shuffleWidth, shuffleHeight - shuffleHeightOffset);       
         dimShuffle.endDraw();
         
-        highlightShuffle.beginDraw(); highlightShuffle.stroke(255); highlightShuffle.strokeWeight(shuffleWidth / 20); highlightShuffle.noFill();
-        highlightShuffle.line(0, shuffleHeight / 8, (3 * shuffleWidth) / 4, 0); highlightShuffle.line(0, shuffleHeight, (3 * shuffleWidth) / 4, (7 * shuffleHeight) / 8);
-        highlightShuffle.line(0, shuffleHeight / 8, 0, shuffleHeight); highlightShuffle.line((3 * shuffleWidth) / 4, 0, (3 * shuffleWidth) / 4, shuffleHeight);
-        highlightShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth, 0); highlightShuffle.line(shuffleWidth / 2, shuffleHeight, shuffleWidth, (7 * shuffleHeight ) / 8);
-        highlightShuffle.line(shuffleWidth / 2, shuffleHeight / 8, shuffleWidth / 2, 0); highlightShuffle.line(shuffleWidth, 0, shuffleWidth, (7 * shuffleHeight) / 8);
+        highlightShuffle.beginDraw(); highlightShuffle.stroke(255); highlightShuffle.strokeWeight(shuffleWidth / 15.0); highlightShuffle.fill(255);
+        highlightShuffle.line(0, shuffleHeightOffset, shuffleMidpoint, shuffleHeightOffset);
+        highlightShuffle.line(shuffleMidpoint, shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset, shuffleHeight - shuffleHeightOffset);
+        highlightShuffle.line(shuffleMidpoint + shuffleArrowOffset, shuffleHeight - shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeight - shuffleHeightOffset);
+        highlightShuffle.line(0, shuffleHeight - shuffleHeightOffset, shuffleMidpoint, shuffleHeight - shuffleHeightOffset);
+               
+        /* Add the groove in the shuffle icon. */
+        highlightShuffle.line(shuffleMidpoint, shuffleHeight - shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset / 4, shuffleHeight - shuffleHeightOffset * 1.25);
+        highlightShuffle.line(shuffleMidpoint + (3 * shuffleArrowOffset) / 4, shuffleHeightOffset * 1.25, shuffleMidpoint + shuffleArrowOffset, shuffleHeightOffset);
+        
+        highlightShuffle.line(shuffleMidpoint + shuffleArrowOffset, shuffleHeightOffset, shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeightOffset);
+        
+        highlightShuffle.noStroke();
+        highlightShuffle.triangle(shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeightOffset * 0.5,
+                            shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeightOffset * 1.5,
+                            shuffleWidth, shuffleHeightOffset);      
+        highlightShuffle.triangle(shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeight - shuffleHeightOffset * 0.5,
+                            shuffleMidpoint + shuffleArrowOffset * 2, shuffleHeight - shuffleHeightOffset * 1.5,
+                            shuffleWidth, shuffleHeight - shuffleHeightOffset);
         highlightShuffle.endDraw();
         
         shuffle = new PGraphicsButton(shuffleX, shuffleY, dimShuffle, highlightShuffle);                
@@ -233,7 +264,7 @@ class AudioWidget
     {
         float barX = seek.getX() + seek.getWidth() * 1.25;
         float barY = seek.getY() + seek.getHeight() / 1.4;
-        float barWidth = x + widgetWidth - (barX * 1.2);
+        float barWidth = x + widgetWidth - barX;
         float barHeight = seek.getHeight() / 15.0;
         
         seekBar = new ProgressBar(barX, barY, barWidth, barHeight, 0, 0);
@@ -257,12 +288,12 @@ class AudioWidget
             forward.setDimColor(200);
             forward.setHighlightColor(255);
             
-        seek = new TextButton(shuffle.getX() + widgetWidth / 30, y + widgetHeight, meiryo, artistFontSize, "seek");
+        seek = new TextButton(shuffle.getX() + shuffle.getWidth() * 1.5, y + widgetHeight, meiryo, artistFontSize, "seek");
             seek.setColor(200);
             seek.setDimColor(200);
             seek.setHighlightColor(255);
             
-        vol = new TextButton(shuffle.getX() + widgetWidth / 30, y + widgetHeight, meiryo, artistFontSize, "vol.");
+        vol = new TextButton(seek.getX(), seek.getY(), meiryo, artistFontSize, "vol.");
             vol.setColor(200);
             vol.setDimColor(200);
             vol.setHighlightColor(255);
@@ -282,7 +313,7 @@ class AudioWidget
         spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 90, false);
         // spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 30, false);
         spectrum.setSmooth(0.85);
-        spectrum.setAmpBoost(0.25);
+        spectrum.setAmpBoost(0.5);
         spectrum.section(spectrumRanges);
         spectrum.setSensitivities(spectrumBoost);   
         spectrum.setDividerWidth((int) (widgetWidth / 150.0));

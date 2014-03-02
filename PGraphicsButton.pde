@@ -35,11 +35,10 @@ public class PGraphicsButton extends PGraphicObject
      */
     public PGraphicsButton(float pX, float pY, PGraphics buffer, PGraphics highlightBuffer)
     {
+        super(pX, pY, buffer.width, buffer.height);
         highlight = false;
         this.buffer = buffer;
         this.highlightBuffer = highlightBuffer;
-        setLocation(pX, pY);
-        resize(buffer.width, buffer.height);
     }
     
     /*

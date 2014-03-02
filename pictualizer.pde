@@ -113,7 +113,7 @@ void drawMain()
     tintBuffer.beginDraw();
     
     tintBuffer.image(img, 0, 0);
-    tintBuffer.tint(150);
+    tintBuffer.tint(150, 90);
     // spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */

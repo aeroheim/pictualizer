@@ -33,8 +33,15 @@ public class ScrollingText extends PGraphicObject
     public ScrollingText(float pX, float pY, float pWidth, PFont font, int fontSize, String text)
     {
         textFont(font, fontSize);
-        resize(pWidth, textAscent() + textDescent());
-        setLocation(pX, pY);
+        
+        /* Threaded non-sense, requires while loop. */
+        while(pX != getX() && pY != getY() && getWidth() != pWidth && getHeight() != textAscent() + textDescent())
+        {
+            textFont(font, fontSize);
+            setLocation(pX, pY);
+            resize(pWidth, textAscent() + textDescent());
+        }
+            
         this.font = font;
         this.fontSize = fontSize;
         this.text = text;

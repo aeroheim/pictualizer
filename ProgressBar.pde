@@ -27,8 +27,7 @@ public class ProgressBar extends PGraphicObject
      */
     public ProgressBar(float pX, float pY, float pWidth, float pHeight, float currVal, float maxVal)
     {
-        resize(pWidth, pHeight);
-        setLocation(pX, pY);
+        super(pX, pY, pWidth, pHeight);
         this.maxVal = maxVal;
         this.currVal = currVal;
         backgroundColor = color(0);
