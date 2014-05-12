@@ -11,15 +11,16 @@ import java.io.UnsupportedEncodingException;
 import javax.imageio.ImageIO;
 
 import java.lang.Float.*;
+import java.util.Collections;
+import java.util.Random;
 
 PImage img;
 PGraphics tintBuffer;
 PGraphics imageBuffer;
 
 /* Music/Minim */
+PAudioPlayer player;
 Minim minim;
-AudioSource in;
-boolean manualPlayerPause;
 
 /* Visualizations. */
 AudioSpectrumVisualizer spectrumVisualizer;
@@ -60,16 +61,14 @@ void setup()
     
     // initialize music
     minim = new Minim(this);
-    in = minim.getLineIn(); 
-    
-    manualPlayerPause = false;
+    player = new PAudioPlayer();
     
     
         // favorite ranges : 450, 1350, 2400
         int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
         float[] spectrumSensitivities = new float[] {0.02, 0.02, 0.02}; 
         spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21, false);
-        spectrumVisualizer.listen(in);
+        spectrumVisualizer.listen(player.getSource());
         spectrumVisualizer.setSmooth(0.9);
         spectrumVisualizer.section(spectrumFreqRanges);
         spectrumVisualizer.setSensitivities(spectrumSensitivities);   
@@ -79,17 +78,16 @@ void setup()
 
     
     // initialize fonts
-    meiryo = createFont("M+ 2p light", 64, true);
+    meiryo = createFont("M+ 2p thin", 64, true);
     centuryGothic = createFont("Century Gothic", 64, true);
     
     // initialize widget
-    widget = new AudioWidget(width / 6.0, height / 3.0, (4.0 * width) / 6.0, (1.0 * height) / 3.0);
-    // widget = new AudioWidget(width / 20.0, height / 10.0, width / 2.0, height / 4.0);
-    widget.listen(in);
+    widget = new AudioWidget(player, width / 6.0, height / 3.0, (4.0 * width) / 6.0, (2 * height) / 5.0);
+    // widget = new AudioWidget(player, width / 20.0, height / 10.0, width / 2.0, height / 4.0);
     
+    widget.listen(player.getSource());
     
     initSDrop();
-    initSongQueue();    
 }
 
 
@@ -98,12 +96,7 @@ void draw()
     drawMain();
     // tint(110, 150);
     widget.draw();
-    if (in instanceof AudioPlayer)
-    {
-        /* Song finished, attempt to load next song. */
-        if (!((AudioPlayer)in).isPlaying() && !manualPlayerPause)
-            loadNextSong();
-    }
+    player.checkPlayerStatus();
 }
 
 void drawMain()
@@ -113,7 +106,7 @@ void drawMain()
     tintBuffer.beginDraw();
     
     tintBuffer.image(img, 0, 0);
-    tintBuffer.tint(150, 90);
+    tintBuffer.tint(120, 90);
     // spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */
@@ -124,6 +117,5 @@ void drawMain()
 void stop()
 { 
   // songPlayer.close();
-  minim.stop();
   super.stop();
 }

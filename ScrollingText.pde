@@ -62,6 +62,21 @@ public class ScrollingText extends PGraphicObject
     }
     
     /*
+     * Sets the text of this TextButton to a new text.
+     * The width of the TextButton is adjusted accordingly.
+     */
+    public void setText(String text)
+    {
+        textFont(font, fontSize);
+        this.text = text;
+        
+        /* Reset scrolling variables. */
+        frameElapsed = 0;
+        scrollWidth = textWidth(text) - getWidth();
+        drawToBuffer();
+    }
+       
+    /*
      *  resize() the ScrollingText by specifing a new font size and width.
      *  The height of the internal graphics buffer will be updated according to the 
      *  new font size, and the width will be updated to the specified value passed in.

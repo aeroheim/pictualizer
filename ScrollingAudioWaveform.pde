@@ -137,8 +137,8 @@ class ScrollingAudioWaveform
      */
     int checkSampleRange(int sample)
     {
-        if ( sample >= in.bufferSize() )
-            return in.bufferSize() - 1;
+        if ( sample >= input.bufferSize() )
+            return input.bufferSize() - 1;
         return sample;
     }
     
@@ -150,7 +150,7 @@ class ScrollingAudioWaveform
         float avgSample = 0.0;
         for(int i = low; i <= high; i++)
         {
-            avgSample += in.mix.get(i);
+            avgSample += input.mix.get(i);
             /*
             if ( i % 2 == 0 )
                 avgSample += in.left.get(i);

@@ -32,6 +32,18 @@ public class TextButton extends PGraphicObject
         this.text = text;
     }
     
+    
+    /*
+     * Sets the text of this TextButton to a new text.
+     * The width of the TextButton is adjusted accordingly.
+     */
+    public void setText(String text)
+    {
+        textFont(font, fontSize);
+        this.text = text;
+        resize(textWidth(text), textAscent() + textDescent());
+    }
+    
     /*
      *  resize() the TextButton by specifying a new font size.
      *  The width and height of this TextButton is adjusted accordingly to the new

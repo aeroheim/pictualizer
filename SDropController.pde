@@ -24,14 +24,14 @@ void dropEvent(DropEvent theDropEvent)
             {
                 String filePath = directory[i].getPath();
                 if (isSupportedSong(filePath))
-                    enqueueSong(filePath);
+                    player.enqueue(filePath);
             } 
             checkDropCount(theDropEvent);
         }
         /* Then proceed to individual files. */
         else if (isSupportedSong(theDropEvent.filePath()))
         {
-            enqueueSong(theDropEvent.filePath());            
+            player.enqueue(theDropEvent.filePath());      
             checkDropCount(theDropEvent);
         }
         /* Ignore the file, increment the counter. */
@@ -50,7 +50,11 @@ void checkDropCount(DropEvent theDropEvent)
     currDropCount++;
     if (currDropCount >= getDropCount(theDropEvent))
     {
-        loadSong(getCurrentSong());
+        player.load(player.getPath());
+        widget.listen(player.getSource());
+        widget.generateID3AlbumArt();
+        widget.generateMetaData();
+        widget.getFileName(player.getPath());
         currDropCount = 0;
     }          
 }

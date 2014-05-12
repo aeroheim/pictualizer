@@ -88,6 +88,12 @@ public abstract class PGraphicObject
             return true;
         return false;
     }
+    
+    
+    /*
+     *  requires implementation; handles click interaction
+     */
+    public void registerClick() {};
         
     /* 
      *  resize() will resize the PGraphicObject given new positional values.

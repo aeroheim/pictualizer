@@ -6,21 +6,16 @@
 
 import java.lang.String;
 
-class AudioWidget // extends PGraphicObject
-{  
-    float x;
-    float y;
-    float widgetWidth;
-    float widgetHeight;
-    
+class AudioWidget extends PGraphicObject
+{     
     ScrollingAudioWaveform wave;
     AudioSpectrumVisualizer spectrum;
     
-    AudioSource input;
-    AudioMetaData metaData;
+    PAudioPlayer player;
     
     ScrollingText title;
     ScrollingText artist;
+    ScrollingText index;
        
     /* Add text buttons. */
     TextButton forward;
@@ -56,17 +51,16 @@ class AudioWidget // extends PGraphicObject
     States visMode;
     States barMode;
  
-    AudioWidget(float startX, float startY, float widgetWidth, float widgetHeight)
+    AudioWidget(PAudioPlayer player, float pX, float pY, float pWidth, float pHeight)
     {
         
-        x = startX;
-        y = startY;
-        this.widgetWidth = widgetWidth;
-        this.widgetHeight = widgetHeight;
+        super(pX, pY, pWidth, pHeight);
+        this.player = player;
         
         try {
-            defaultArt = loadImage("art.png");
-            defaultArt.resize((int) widgetHeight, (int) widgetHeight);
+            int ID3AlbumArtSideLength = (int) (getHeight() * 0.8);
+            defaultArt = loadImage("art.jpg");
+            defaultArt.resize(ID3AlbumArtSideLength, ID3AlbumArtSideLength);
         }
         catch (Exception e)
         {
@@ -81,10 +75,10 @@ class AudioWidget // extends PGraphicObject
         float[] spectrumBoost = new float[] {0.04, 0.07, 0.09, 0.15, 0.15, 0.15};
         // float[] spectrumBoost = new float[] {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};        
         
-        titleFontSize = (int) (widgetHeight / 3.5);
-        artistFontSize = (int) (widgetHeight / 6.0);
-        modeFontSize = (int) (widgetHeight / 8.0);
-        barFontSize = (int) (widgetHeight / 12.0);
+        titleFontSize = (int) (ID3AlbumArt.height / 3.5);
+        artistFontSize = (int) (ID3AlbumArt.height / 6.0);
+        modeFontSize = (int) (ID3AlbumArt.height / 8.0);
+        barFontSize = (int) (ID3AlbumArt.height / 14.0);
                                        
         visMode = States.AUDIO_SPECTRUM;
         barMode = States.BAR_SEEK;
@@ -98,7 +92,6 @@ class AudioWidget // extends PGraphicObject
     
     void listen(AudioSource input)
     {
-        this.input = input;
         wave.listen(input);
         spectrum.listen(input);
         if (input instanceof AudioPlayer)
@@ -116,22 +109,22 @@ class AudioWidget // extends PGraphicObject
     
     private void initPGraphicsButtons()
     {
-        float playX = x + ID3AlbumArt.width / 2.6;
-        float playY = y + widgetHeight * 1.095;
+        float playX = getX() + ID3AlbumArt.width / 2.6;
+        float playY = getY() + ID3AlbumArt.height * 1.1;
         float playWidth = ID3AlbumArt.width / 2.25 - ID3AlbumArt.width / 2.75;
-        float playHeight = widgetHeight * 0.1;
+        float playHeight = ID3AlbumArt.height * 0.1;
                 
-        float stopX = x + ID3AlbumArt.width / 1.85;
-        float stopY = y + widgetHeight * 1.1;
-        float stopSideLength = widgetHeight * 0.08;
+        float stopX = getX() + ID3AlbumArt.width / 1.85;
+        float stopY = getY() + ID3AlbumArt.height * 1.11;
+        float stopSideLength = ID3AlbumArt.width * 0.08;
         
         float pauseWidth = stopSideLength / 4.0;
         
-        float repeatX = x + ID3AlbumArt.width + widgetWidth / 20;
-        float repeatY = y + widgetHeight * 1.08;
-        float repeatWidth = playWidth + 5;
-        float repeatHeight = playHeight + 5;
-        float repeatRadius = widgetWidth / 100;
+        float repeatX = getX() + ID3AlbumArt.width + getWidth() / 20;
+        float repeatY = getY() + ID3AlbumArt.height * 1.085;
+        float repeatWidth = playWidth + 3;
+        float repeatHeight = playHeight + 3;
+        float repeatRadius = getWidth() / 100;
                              
                       
         /* Initialize the PLAY PGraphicsButton. */
@@ -264,7 +257,7 @@ class AudioWidget // extends PGraphicObject
     {
         float barX = seek.getX() + seek.getWidth() * 1.25;
         float barY = seek.getY() + seek.getHeight() / 1.4;
-        float barWidth = x + widgetWidth - barX;
+        float barWidth = getX() + getWidth() - barX;
         float barHeight = seek.getHeight() / 15.0;
         
         seekBar = new ProgressBar(barX, barY, barWidth, barHeight, 0, 0);
@@ -278,22 +271,22 @@ class AudioWidget // extends PGraphicObject
     
     private void initTextButtons()
     {     
-        previous = new TextButton(x, y + widgetHeight, meiryo, artistFontSize, "< <");
+        previous = new TextButton(getX(), getY() + ID3AlbumArt.height, meiryo, artistFontSize, "< <");
             previous.setColor(200);
             previous.setDimColor(200);
             previous.setHighlightColor(255);
             
-        forward = new TextButton(x + ID3AlbumArt.width - previous.getWidth(), y + widgetHeight, meiryo, artistFontSize, "> >");
+        forward = new TextButton(getX() + ID3AlbumArt.width - previous.getWidth(), previous.getY(), meiryo, artistFontSize, "> >");
             forward.setColor(200);
             forward.setDimColor(200);
             forward.setHighlightColor(255);
             
-        seek = new TextButton(shuffle.getX() + shuffle.getWidth() * 1.5, y + widgetHeight, meiryo, artistFontSize, "seek");
+        seek = new TextButton(shuffle.getX() + shuffle.getWidth() * 1.5, previous.getY(), meiryo, artistFontSize, "seek");
             seek.setColor(200);
             seek.setDimColor(200);
             seek.setHighlightColor(255);
             
-        vol = new TextButton(seek.getX(), seek.getY(), meiryo, artistFontSize, "vol.");
+        vol = new TextButton(seek.getX(), previous.getY(), meiryo, artistFontSize, "vol.");
             vol.setColor(200);
             vol.setDimColor(200);
             vol.setHighlightColor(255);
@@ -302,7 +295,8 @@ class AudioWidget // extends PGraphicObject
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
     {
         /* Waveform visualizer. */
-        wave = new ScrollingAudioWaveform(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + (3.25 * ID3AlbumArt.height) / 4.0, (int) widgetHeight, (int)(widgetHeight / 4.0));
+        wave = new ScrollingAudioWaveform(getX() + ID3AlbumArt.width + getWidth() / 20, getX() + getWidth(), 
+                                          getY() + (3.25 * ID3AlbumArt.height) / 4.0, ID3AlbumArt.height, (int)(ID3AlbumArt.height / 4.0));
         wave.setTimeOffset(18);
         wave.setAmpBoost(0.21);
         wave.setAlpha(0);
@@ -310,21 +304,23 @@ class AudioWidget // extends PGraphicObject
         wave.setSmooth(0.25);
       
         /* Spectrum visualizer. */
-        spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 90, false);
-        // spectrum = new AudioSpectrumVisualizer(x + ID3AlbumArt.width + widgetWidth / 20, x + widgetWidth, y + ID3AlbumArt.height / 1.5, y + widgetHeight, 6, 30, false);
+        spectrum = new AudioSpectrumVisualizer(getX() + ID3AlbumArt.width + getWidth() / 20, getX() + getWidth(), 
+                                               getY() + ID3AlbumArt.height / 1.5, getY() + ID3AlbumArt.height, 6, 90, false);
+        // spectrum = new AudioSpectrumVisualizer(getX() + ID3AlbumArt.width + getWidth() / 20, getX() + getWidth(), getY() + ID3AlbumArt.height / 1.5, getY() + getHeight(), 6, 30, false);
         spectrum.setSmooth(0.85);
         spectrum.setAmpBoost(0.5);
         spectrum.section(spectrumRanges);
         spectrum.setSensitivities(spectrumBoost);   
-        spectrum.setDividerWidth((int) (widgetWidth / 150.0));
-        // spectrum.setDividerWidth((int) (widgetWidth / 100.0));
+        spectrum.setDividerWidth((int) (getWidth() / 150.0));
+        // spectrum.setDividerWidth((int) (getWidth() / 100.0));
         spectrum.setDelta(15);
     }
     
     void draw()
     {   
+        // drawBackground();
         // scale(0.5);
-        image(ID3AlbumArt, x, y);
+        image(ID3AlbumArt, getX(), getY());
         
         /* Metadata. */
         drawMetaData();
@@ -333,10 +329,22 @@ class AudioWidget // extends PGraphicObject
         drawVisualization();
             
         /* Control. */
-        if (input instanceof AudioPlayer)
+        if (player.playerMode())
             drawControl(); 
         
-        mouseOver();
+        if (mouseOver())
+            highlight();             
+    }
+    
+    private void drawBackground()
+    {
+        float widthOffset = getWidth() / 25.0;
+        float heightOffset = getHeight() / 10.0;
+        float radii = getWidth() / 10.0;
+        fill(0, 100);
+        noStroke();
+        rect(getX() - widthOffset, getY() - heightOffset, getWidth() + widthOffset * 2, getHeight() + heightOffset * 2,
+             radii / 4, radii, radii / 4, radii);
     }
     
     void drawVisualization()
@@ -362,6 +370,15 @@ class AudioWidget // extends PGraphicObject
                 
         /* Artist. */
         artist.draw();       
+        
+        /* Hack to check for automatic playing of next song. */
+        if (player.checkAutoNext())
+        {
+            listen(player.getSource());
+            widget.generateID3AlbumArt();
+            widget.generateMetaData();
+            widget.getFileName(player.getPath());
+        }
     }
      
     void drawControl()
@@ -370,7 +387,7 @@ class AudioWidget // extends PGraphicObject
         forward.draw(); 
         if (barMode == States.BAR_SEEK)
         {
-            float currentMillisPos = ((AudioPlayer) in).position();
+            float currentMillisPos = player.getSeekPosition();
             seek.draw();
             seekBar.setCurrentValue(currentMillisPos);
             seekBar.draw();
@@ -381,7 +398,7 @@ class AudioWidget // extends PGraphicObject
             int hr   = (int) ((currentMillisPos / (1000*60*60)) % 24);
             
             textFont(centuryGothic, barFontSize);
-            text(String.format("%02d:%02d:%02d", hr, min, sec)+" / "+songLength, seekBar.getX(), seek.getY() + textAscent() * .75);
+            text(String.format("%02d:%02d:%02d", hr, min, sec)+" / "+songLength, seekBar.getX(), seek.getY() + textAscent());
         }
         else
         {
@@ -390,10 +407,11 @@ class AudioWidget // extends PGraphicObject
             
             /* Draw volume bar text. */
             textFont(centuryGothic, barFontSize);
-            text(String.format("%.2f", ((AudioPlayer) input).getGain())+" dB", volBar.getX(), seek.getY() + textAscent() * .75);          
+            text((volume+" dB"), volBar.getX(), seek.getY() + textAscent());  
+            //text(String.format("%.2f", volume+" dB"), volBar.getX(), seek.getY() + textAscent());          
         }
         
-        if ( !((AudioPlayer) input).isPlaying() )
+        if ( !player.isPlaying() )
         {
             if (play.mouseOver())
                 play.highlight();
@@ -429,14 +447,16 @@ class AudioWidget // extends PGraphicObject
     }
     
     void generateID3AlbumArt()
-    {
+    {      
+        int ID3AlbumArtSideLength = (int) (getHeight() * 0.8);
+        
         /* Currently in player mode. Grab ID3Image if available. */
-        if (input instanceof AudioPlayer)
+        if (player.playerMode())
         {
-            ID3AlbumArt = getAlbumArt(getCurrentSong());
+            ID3AlbumArt = getAlbumArt(player.getPath());
             if (ID3AlbumArt == null)
                 ID3AlbumArt = defaultArt;
-            ID3AlbumArt.resize((int) widgetHeight, (int) widgetHeight);
+            ID3AlbumArt.resize(ID3AlbumArtSideLength, ID3AlbumArtSideLength);
         }
         /* In input mode, load default image. */
         else if (defaultArt != null)
@@ -444,7 +464,7 @@ class AudioWidget // extends PGraphicObject
         /* No default art, create one. */
         else
         {
-            defaultArt = createImage((int) widgetHeight, (int) widgetHeight, ARGB);
+            defaultArt = createImage(ID3AlbumArtSideLength, ID3AlbumArtSideLength, ARGB);
             defaultArt.loadPixels();
             for(int i = 0; i < defaultArt.pixels.length; i++)
                 defaultArt.pixels[i] = color(50, 125);
@@ -455,15 +475,15 @@ class AudioWidget // extends PGraphicObject
     
     void generateMetaData()
     {    
-        float startX = x + ID3AlbumArt.width + widgetWidth / 20;
-        float endX = x + widgetWidth - startX;
+        float startX = getX() + ID3AlbumArt.width + getWidth() / 20;
+        float endX = getX() + getWidth() - startX;
         
-        titleFontSize = (int) (widgetHeight / 3.5);
-        artistFontSize = (int) (widgetHeight / 6.0);
+        titleFontSize = (int) (ID3AlbumArt.height / 3.5);
+        artistFontSize = (int) (ID3AlbumArt.height / 6.0);
         
-        if (input instanceof AudioPlayer)
+        if (player.playerMode())
         {
-            float songMaxLength = ((AudioPlayer) input).length();
+            float songMaxLength = player.getLength();
             int songSec  = (int)((songMaxLength / 1000) % 60) ;
             int songMin  = (int)((songMaxLength / (1000 * 60)) % 60);
             int songHr   = (int)((songMaxLength / (1000 * 60 * 60)) % 24);
@@ -471,23 +491,23 @@ class AudioWidget // extends PGraphicObject
             songLength = String.format("%02d:%02d:%02d", songHr, songMin, songSec);
             seekBar.setMaxValue(songMaxLength);
             
-            metaData = ((AudioPlayer) input).getMetaData();
+            AudioMetaData metaData = player.getMetaData();
             /* Generate metadata for song title. */
             if (metaData.title().length() != 0)
-                title = new ScrollingText(startX, y, endX, meiryo, titleFontSize, metaData.title());
+                title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, metaData.title());
             else
-                title = new ScrollingText(startX, y, endX, meiryo, titleFontSize, getFileName(metaData.fileName()));
+                title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, getFileName(metaData.fileName()));
             
             /* Generate metadata for song artist. */  
             if (metaData.author().length() != 0)
-                artist = new ScrollingText(startX, y + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, metaData.author());
+                artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, metaData.author());
             else
-                artist = new ScrollingText(startX, y + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "unknown");
+                artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "unknown");
         }
         else
         {
-            title = new ScrollingText(startX, y, endX, meiryo, titleFontSize, "input");
-            artist = new ScrollingText(startX, y + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "audio input");
+            title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, "input");
+            artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "audio input");
         }
             
         /* Set default scroll options. */
@@ -497,8 +517,7 @@ class AudioWidget // extends PGraphicObject
         artist.setScrollPause(5);
     }
 
-
-    public void mouseOver()
+    public void highlight()
     {
         if (visMode == States.AUDIO_SPECTRUM)
             spectrum.mouseOver();
@@ -532,13 +551,13 @@ class AudioWidget // extends PGraphicObject
         /* Mouse over 'repeat' button. */
         if (repeat.mouseOver())
             repeat.highlight();
-        else
+        else if (!player.isRepeating())
             repeat.dim();
         
         /* Mouse over 'shuffle' button. */
         if (shuffle.mouseOver())
             shuffle.highlight();
-        else
+        else if (!player.isShuffling())
             shuffle.dim();
     }
     
@@ -561,31 +580,41 @@ class AudioWidget // extends PGraphicObject
             /* Previous song. */
             else if (previous.mouseOver())
             {
-                loadPrevSong();
+                player.previous();
+                listen(player.getSource());
+                widget.generateID3AlbumArt();
+                widget.generateMetaData();
+                widget.getFileName(player.getPath());
             }
             /* Next song. */
             else if (forward.mouseOver())
             {
-                loadNextSong();
+                player.next();
+                listen(player.getSource());
+                widget.generateID3AlbumArt();
+                widget.generateMetaData();
+                widget.getFileName(player.getPath());
             }
-            else if (play.mouseOver() && input instanceof AudioPlayer && !((AudioPlayer) input).isPlaying())
+            else if (play.mouseOver() && player.playerMode() && !player.isPlaying())
             {
-                /* Hack to check if song is over but not paused. Minim doesn't have proper working functionality to detect this. */
-                if ( !manualPlayerPause )
-                    ((AudioPlayer) input).rewind();
-                ((AudioPlayer) input).play();
-                manualPlayerPause = false;
+                player.play();
             }
-            else if (pause.mouseOver() && input instanceof AudioPlayer)
+            else if (pause.mouseOver() && player.playerMode())
             {
-                ((AudioPlayer) input).pause();
-                manualPlayerPause = true;
+                player.pause();
             }
-            else if (stop.mouseOver() && input instanceof AudioPlayer)
+            else if (stop.mouseOver() && player.playerMode())
             {
-                 ((AudioPlayer) input).pause();
-                 ((AudioPlayer) input).rewind();
-                 manualPlayerPause = true;
+                player.stop();
+            }
+            else if (repeat.mouseOver() && player.playerMode())
+            {
+                player.toggleRepeat();
+                repeat.highlight();
+            }
+            else if (shuffle.mouseOver() && player.playerMode())
+            {
+                player.toggleShuffle(); 
             }
             /* Clicked on seek/vol, switch states. */
             else if (seek.mouseOver() || vol.mouseOver())
@@ -596,18 +625,18 @@ class AudioWidget // extends PGraphicObject
                     barMode = States.BAR_SEEK;
             }
             /* Clicked on bar, calculate position/volume to seek to. */
-            else if (input instanceof AudioPlayer && mouseX >= seekBar.getX() && mouseX <= seekBar.getX() + seekBar.getWidth() &&
+            else if (player.playerMode() && mouseX >= seekBar.getX() && mouseX <= seekBar.getX() + seekBar.getWidth() &&
                          mouseY >= seekBar.getY() - seekBar.getHeight() * 2 && mouseY <= seekBar.getY() + seekBar.getHeight() * 2)
             {
                 float percent = (mouseX - seekBar.getX()) / seekBar.getWidth();
                 /* Seek bar. */
                 if ( barMode == States.BAR_SEEK )
-                    ((AudioPlayer) input).cue((int) (percent * ((AudioPlayer) input).length()));
+                    player.seek((int) (percent * player.getLength()));
                 /* Volume bar. */
                 else
                 {
                     float newGain = 94 * percent - 80;
-                    ((AudioPlayer) input).setGain(newGain);
+                    player.setVolume(newGain);
                     volBar.setCurrentValue(newGain + 80);
                     volume = newGain;
                 }
