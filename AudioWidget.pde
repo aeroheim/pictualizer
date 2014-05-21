@@ -29,6 +29,8 @@ class AudioWidget extends PGraphicObject
     PGraphicsButton repeat;
     PGraphicsButton shuffle;
     
+    boolean indexMode;
+    
     ProgressBar seekBar;
     ProgressBar volBar;
     
@@ -59,7 +61,7 @@ class AudioWidget extends PGraphicObject
         
         try {
             int ID3AlbumArtSideLength = (int) (getHeight() * 0.8);
-            defaultArt = loadImage("art.jpg");
+            defaultArt = loadImage("art.png");
             defaultArt.resize(ID3AlbumArtSideLength, ID3AlbumArtSideLength);
         }
         catch (Exception e)
@@ -94,6 +96,10 @@ class AudioWidget extends PGraphicObject
     {
         wave.listen(input);
         spectrum.listen(input);
+        
+        /* Hack; fix later. */
+        spectrumVisualizer.listen(input);
+        
         if (input instanceof AudioPlayer)
         {
             ((AudioPlayer) input).setGain(volume);
@@ -290,6 +296,9 @@ class AudioWidget extends PGraphicObject
             vol.setColor(200);
             vol.setDimColor(200);
             vol.setHighlightColor(255);
+        index = new ScrollingText(getX(), getY(), ID3AlbumArt.width, centuryGothic, (int) (width / 7.5), "00");
+            index.setScrollSpeed(0.25);
+            index.setScrollPause(0);
     }
     
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)
@@ -320,7 +329,10 @@ class AudioWidget extends PGraphicObject
     {   
         // drawBackground();
         // scale(0.5);
-        image(ID3AlbumArt, getX(), getY());
+        if (indexMode)
+            index.draw();
+        else
+            image(ID3AlbumArt, getX(), getY());
         
         /* Metadata. */
         drawMetaData();
@@ -481,6 +493,7 @@ class AudioWidget extends PGraphicObject
         titleFontSize = (int) (ID3AlbumArt.height / 3.5);
         artistFontSize = (int) (ID3AlbumArt.height / 6.0);
         
+        
         if (player.playerMode())
         {
             float songMaxLength = player.getLength();
@@ -492,6 +505,10 @@ class AudioWidget extends PGraphicObject
             seekBar.setMaxValue(songMaxLength);
             
             AudioMetaData metaData = player.getMetaData();
+            
+            /* Update the index display. */
+            index.setText(String.format("%02d", player.getIndex() + 1));
+            
             /* Generate metadata for song title. */
             if (metaData.title().length() != 0)
                 title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, metaData.title());
@@ -565,6 +582,11 @@ class AudioWidget extends PGraphicObject
     {
         if (mouseButton == LEFT)
         {
+            if (mouseX >= getX() && mouseX <= getX() + ID3AlbumArt.width &&
+                mouseY >= getY() && mouseY <= getY() + ID3AlbumArt.height)
+            {
+                indexMode = !indexMode; 
+            }
             if (spectrum.mouseOver() && visMode == States.AUDIO_SPECTRUM && !spectrum.isFading() && !wave.isFading())
             {
                 spectrum.fade();

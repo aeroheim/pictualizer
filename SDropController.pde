@@ -34,9 +34,29 @@ void dropEvent(DropEvent theDropEvent)
             player.enqueue(theDropEvent.filePath());      
             checkDropCount(theDropEvent);
         }
+        /* Image case. REVISE CODE LATER. */
+        else if (theDropEvent.isImage())
+        {
+            currDropCount++;
+            if (currDropCount >= getDropCount(theDropEvent))
+            {
+                img = loadImage(theDropEvent.filePath());
+                
+                /* Adjust the new image dimensions to fit the visualizer frame. */
+                fixImgToFrame(img);
+                
+                /* Reset our roaming camera values. */
+                initCamera();          
+                
+                currDropCount = 0;
+            }
+        }
         /* Ignore the file, increment the counter. */
         else
+        {
             checkDropCount(theDropEvent);
+            print("drop count: "+getDropCount(theDropEvent)+"\n");
+        }
     }
 }
 
@@ -54,7 +74,7 @@ void checkDropCount(DropEvent theDropEvent)
         widget.listen(player.getSource());
         widget.generateID3AlbumArt();
         widget.generateMetaData();
-        widget.getFileName(player.getPath());
+        widget.getFileName(player.getPath());                
         currDropCount = 0;
     }          
 }

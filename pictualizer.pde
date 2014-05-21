@@ -32,7 +32,6 @@ AudioWidget widget;
 PFont meiryo;
 PFont centuryGothic;
 
-
 /*
  *  Remove processing's built in frame from window.
  */
@@ -73,7 +72,7 @@ void setup()
         spectrumVisualizer.section(spectrumFreqRanges);
         spectrumVisualizer.setSensitivities(spectrumSensitivities);   
         // spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
-        spectrumVisualizer.setDividerWidth(30);
+        spectrumVisualizer.setDividerWidth(10);
         spectrumVisualizer.toggleBackgroundMode();
 
     
@@ -92,11 +91,13 @@ void setup()
 
 
 void draw()
-{        
+{   
     drawMain();
+    updateImageBuffer();
     // tint(110, 150);
     widget.draw();
     player.checkPlayerStatus();
+    roam(img);
 }
 
 void drawMain()
@@ -105,13 +106,20 @@ void drawMain()
     tintBuffer.clear();
     tintBuffer.beginDraw();
     
-    tintBuffer.image(img, 0, 0);
+    tintBuffer.image(img, imgX, imgY);
     tintBuffer.tint(120, 90);
-    // spectrumVisualizer.draw(imageBuffer, tintBuffer);
+    spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */
     tintBuffer.endDraw(); 
     image(tintBuffer, 0, 0);
+}
+
+void updateImageBuffer()
+{
+    imageBuffer.beginDraw();
+    imageBuffer.image(img, imgX, imgY);
+    imageBuffer.endDraw();
 }
 
 void stop()
