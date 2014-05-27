@@ -72,6 +72,8 @@ public class ScrollingText extends PGraphicObject
         
         /* Reset scrolling variables. */
         frameElapsed = 0;
+        translatedWidth = 0.0;
+        scrollSpeed = abs(scrollSpeed);
         scrollWidth = textWidth(text) - getWidth();
         drawToBuffer();
     }
@@ -164,13 +166,13 @@ public class ScrollingText extends PGraphicObject
         int compare2 = Float.compare(translatedWidth, 0.0);
         
         /* At end of text. Begin pause duration. */     
-        if ((compare1 > 0 || compare1 == 0 || compare2 == 0) && frameElapsed / 60 < scrollPause)
+        if ((compare1 > 0 || compare1 == 0 || compare2 ==0) && (frameElapsed / 60) < scrollPause)
         {
             frameElapsed++;
             drawToBuffer();
         }
         /* Finished pause, now intiate the new scrolling. */
-        else if ((compare1 > 0 || compare1 == 0 || compare2 == 0.0) && frameElapsed / 60 >= scrollPause)
+        else if ((compare1 > 0 || compare1 == 0 || compare2 == 00) && (frameElapsed / 60) >= scrollPause)
         {
             scrollSpeed= -(scrollSpeed);
                    

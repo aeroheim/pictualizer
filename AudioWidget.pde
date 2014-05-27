@@ -296,9 +296,9 @@ class AudioWidget extends PGraphicObject
             vol.setColor(200);
             vol.setDimColor(200);
             vol.setHighlightColor(255);
-        index = new ScrollingText(getX(), getY(), ID3AlbumArt.width, centuryGothic, (int) (width / 7.5), "00");
-            index.setScrollSpeed(0.25);
-            index.setScrollPause(0);
+        index = new ScrollingText(getX(), getY(), ID3AlbumArt.width, centuryGothic, (int) (ID3AlbumArt.width * 0.9), "00");
+            index.setScrollSpeed(0.5);
+            index.setScrollPause(3);
     }
     
     void initVisualizations(int[] spectrumRanges, float[] spectrumBoost)

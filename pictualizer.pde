@@ -65,14 +65,14 @@ void setup()
     
         // favorite ranges : 450, 1350, 2400
         int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
-        float[] spectrumSensitivities = new float[] {0.02, 0.02, 0.02}; 
-        spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21, false);
+        float[] spectrumSensitivities = new float[] {0.01, 0.02, 0.02}; 
+        spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 27, false);
         spectrumVisualizer.listen(player.getSource());
         spectrumVisualizer.setSmooth(0.9);
         spectrumVisualizer.section(spectrumFreqRanges);
         spectrumVisualizer.setSensitivities(spectrumSensitivities);   
         // spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
-        spectrumVisualizer.setDividerWidth(10);
+        spectrumVisualizer.setDividerWidth(5);
         spectrumVisualizer.toggleBackgroundMode();
 
     

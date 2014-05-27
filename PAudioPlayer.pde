@@ -276,6 +276,8 @@ class PAudioPlayer
 
     public String getPath()
     {
+        if (shuffle)
+            return queue.get(order.get(index));
         return queue.get(index);
     }
     
