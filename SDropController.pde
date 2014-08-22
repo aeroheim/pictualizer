@@ -5,6 +5,8 @@ import java.util.List;
 SDrop drop;
 int currDropCount;
 
+String newImagePath;
+
 void initSDrop()
 {
     drop = new SDrop(this);
@@ -40,10 +42,12 @@ void dropEvent(DropEvent theDropEvent)
             currDropCount++;
             if (currDropCount >= getDropCount(theDropEvent))
             {
-                img = loadImage(theDropEvent.filePath());
+                newImagePath = theDropEvent.filePath();
+                // img = loadImage(theDropEvent.filePath());
+                thread("loadImageFromSDrop");
                 
-                /* Adjust the new image dimensions to fit the visualizer frame. */
-                fixImgToFrame(img);
+                
+                // thread("updateBlurBuffer");
                 
                 /* Reset our roaming camera values. */
                 initCamera();          
@@ -60,6 +64,14 @@ void dropEvent(DropEvent theDropEvent)
     }
 }
 
+/*
+ *  Threaded image loading function.
+ */
+void loadImageFromSDrop()
+{
+    img = loadImage(newImagePath);
+    getBeatReactiveImage(img);   
+}
 
 /*
  *  Checks whether the current file is the last file of the DropEvent.
@@ -70,12 +82,13 @@ void checkDropCount(DropEvent theDropEvent)
     currDropCount++;
     if (currDropCount >= getDropCount(theDropEvent))
     {
-        player.load(player.getPath());
-        widget.listen(player.getSource());
+        player.load(player.getPath());              
+        widget.listen(player.getSource());               
         widget.generateID3AlbumArt();
         widget.generateMetaData();
         widget.getFileName(player.getPath());                
         currDropCount = 0;
+       
     }          
 }
 

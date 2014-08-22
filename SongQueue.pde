@@ -32,6 +32,7 @@ void loadSong(String filePath)
     widget.listen(in);
     spectrumVisualizer.listen(in);
     ((AudioPlayer) in).play();
+  
     
     widget.generateID3AlbumArt();
     widget.generateMetaData();

@@ -21,6 +21,8 @@ PGraphics imageBuffer;
 /* Music/Minim */
 PAudioPlayer player;
 Minim minim;
+BeatListener beatListener;
+BeatDetect beatDetect;
 
 /* Visualizations. */
 AudioSpectrumVisualizer spectrumVisualizer;
@@ -31,6 +33,8 @@ AudioWidget widget;
 /* Fonts. */
 PFont meiryo;
 PFont centuryGothic;
+
+public static int FRAME_RATE = 60;
 
 /*
  *  Remove processing's built in frame from window.
@@ -46,14 +50,16 @@ void init()
 void setup()
 {    
     img = loadImage("background.jpg");
-    size(img.width, img.height, JAVA2D);
+    
+    
+    size(img.width, img.height, P2D);
     background(img);
     
-    tintBuffer = createGraphics(width, height);
+    tintBuffer = createGraphics(width, height, P2D);
     tintBuffer.beginDraw();
     tintBuffer.endDraw();
     
-    imageBuffer = createGraphics(width, height);
+    imageBuffer = createGraphics(width, height, JAVA2D);
     imageBuffer.beginDraw();
     imageBuffer.image(img, 0, 0);
     imageBuffer.endDraw();
@@ -62,18 +68,22 @@ void setup()
     minim = new Minim(this);
     player = new PAudioPlayer();
     
+    beatDetect = new BeatDetect(player.getSource().bufferSize(), player.getSource().sampleRate());
+    beatDetect.setSensitivity(250);
+    // beatListener = new BeatListener(beatDetect, player.getSource());
     
-        // favorite ranges : 450, 1350, 2400
-        int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
-        float[] spectrumSensitivities = new float[] {0.01, 0.02, 0.02}; 
-        spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 27, false);
-        spectrumVisualizer.listen(player.getSource());
-        spectrumVisualizer.setSmooth(0.9);
-        spectrumVisualizer.section(spectrumFreqRanges);
-        spectrumVisualizer.setSensitivities(spectrumSensitivities);   
-        // spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
-        spectrumVisualizer.setDividerWidth(5);
-        spectrumVisualizer.toggleBackgroundMode();
+    
+    // favorite ranges : 450, 1350, 2400
+    int[] spectrumFreqRanges = new int[] {450, 1350, 2400};
+    float[] spectrumSensitivities = new float[] {0.01, 0.02, 0.02}; 
+    spectrumVisualizer = new AudioSpectrumVisualizer(0, width, 0, height, 3, 21, false);
+    spectrumVisualizer.listen(player.getSource());
+    spectrumVisualizer.setSmooth(0.90);
+    spectrumVisualizer.section(spectrumFreqRanges);
+    spectrumVisualizer.setSensitivities(spectrumSensitivities);   
+    // spectrumVisualizer.setDividerWidth((int) (width / 150.0)); 
+    spectrumVisualizer.setDividerWidth(5);
+    spectrumVisualizer.toggleBackgroundMode();
 
     
     // initialize fonts
@@ -81,12 +91,13 @@ void setup()
     centuryGothic = createFont("Century Gothic", 64, true);
     
     // initialize widget
-    widget = new AudioWidget(player, width / 6.0, height / 3.0, (4.0 * width) / 6.0, (2 * height) / 5.0);
-    // widget = new AudioWidget(player, width / 20.0, height / 10.0, width / 2.0, height / 4.0);
+    // widget = new AudioWidget(player, width / 6.0, height / 3.0, (4.0 * width) / 6.0, (2 * height) / 5.0);
+    widget = new AudioWidget(player, width / 20.0, height / 10.0, width / 2.0, height / 4.0);
     
     widget.listen(player.getSource());
     
     initSDrop();
+    initBeatReactiveImage(img);
 }
 
 
@@ -94,7 +105,6 @@ void draw()
 {   
     drawMain();
     updateImageBuffer();
-    // tint(110, 150);
     widget.draw();
     player.checkPlayerStatus();
     roam(img);
@@ -103,16 +113,24 @@ void draw()
 void drawMain()
 {
     /* Clear the previous frame. */
-    tintBuffer.clear();
     tintBuffer.beginDraw();
+    tintBuffer.clear();
     
     tintBuffer.image(img, imgX, imgY);
-    tintBuffer.tint(120, 90);
+    
+    if (!isFlashing)
+        tintBuffer.tint(255, mainAlpha);
+    else
+        drawBeatReactiveImage(tintBuffer);
+       
     spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */
     tintBuffer.endDraw(); 
     image(tintBuffer, 0, 0);
+    
+    // Update values for the BeatReactiveImage.
+    OnBeatDetect();
 }
 
 void updateImageBuffer()
@@ -127,3 +145,5 @@ void stop()
   // songPlayer.close();
   super.stop();
 }
+
+

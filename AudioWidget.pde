@@ -100,6 +100,10 @@ class AudioWidget extends PGraphicObject
         /* Hack; fix later. */
         spectrumVisualizer.listen(input);
         
+        beatDetect = new BeatDetect(input.bufferSize(), input.sampleRate());
+        beatDetect.setSensitivity(500);
+        beatListener = new BeatListener(beatDetect, input);
+        
         if (input instanceof AudioPlayer)
         {
             ((AudioPlayer) input).setGain(volume);
@@ -307,10 +311,10 @@ class AudioWidget extends PGraphicObject
         wave = new ScrollingAudioWaveform(getX() + ID3AlbumArt.width + getWidth() / 20, getX() + getWidth(), 
                                           getY() + (3.25 * ID3AlbumArt.height) / 4.0, ID3AlbumArt.height, (int)(ID3AlbumArt.height / 4.0));
         wave.setTimeOffset(18);
-        wave.setAmpBoost(0.21);
+        wave.setAmpBoost(0.25);
         wave.setAlpha(0);
         wave.setDelta(-15);
-        wave.setSmooth(0.25);
+        wave.setSmooth(0.0);
       
         /* Spectrum visualizer. */
         spectrum = new AudioSpectrumVisualizer(getX() + ID3AlbumArt.width + getWidth() / 20, getX() + getWidth(), 

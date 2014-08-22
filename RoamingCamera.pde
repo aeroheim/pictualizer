@@ -53,9 +53,9 @@ public void roam(PImage image)
         {
             xTransition = false;
             framesElapsed = 0;
-            if (imgdX >= 0.0)
+            if (imgdX > 0)
                 imgX++;
-            else
+            else if (imgdX < 0)
                 imgX--;
         }
     }
@@ -77,9 +77,9 @@ public void roam(PImage image)
         {
             yTransition = false;
             framesElapsed = 0;
-            if (imgdY >= 0.0)
+            if (imgdY > 0)
                 imgY++;
-            else
+            else if (imgdY < 0)
                 imgY--;
         } 
     }

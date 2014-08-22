@@ -22,7 +22,7 @@ class PAudioPlayer
      */
     public PAudioPlayer()
     {
-        /* Initialize minim; default PAudioPlayer source is system input. */
+        /* Initialize minim; default PAudioxer source is system input. */
         // minim = new Minim(this);
         source = minim.getLineIn();
       
@@ -82,13 +82,17 @@ class PAudioPlayer
     public void checkPlayerStatus()
     {
         if (playerMode() && !((AudioPlayer) source).isPlaying() && !manualPause)
+        {
             if (repeat)
+            {
                 play();
-            else
+            }
+            else if (shuffle || (index < queue.size() - 1))
             {
                 autoNext = true;
                 next();            
             }   
+        }
     }
     
     /*

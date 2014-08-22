@@ -85,7 +85,7 @@ class ScrollingAudioWaveform
                 if ( i == amps.length - 1 )
                 {
                     /* Divide buffer spectrum into individual unit size. */
-                    float bufferUnit = round(maxSampleBuffer / amps[i].length);
+                    float bufferUnit = floor(maxSampleBuffer / amps[i].length);
                     /* Store and draw the audio samples. */
                     for(int j = 0; j < amps[i].length - 1; j++)
                     {
@@ -109,9 +109,13 @@ class ScrollingAudioWaveform
                 /* Propogate the waveform down and draw to simulate animation. */
                 else
                 {
-                    for(int j = 0; j < amps[i].length - 1; j++)
+                    for(int j = 0; j < amps[i].length; j++)
                     {
-                        line(waveformX + offsetPos + j, waveformY + (int) amps[i][j], waveformX + offsetPos + j + 1, waveformY + (int) amps[i][j + 1]);
+                        if (j == amps[i].length - 1)
+                            line(waveformX + offsetPos + j, waveformY + (int) amps[i][j], waveformX + offsetPos + j + 1, waveformY + (int) amps[i + 1][0]);
+                        else
+                            line(waveformX + offsetPos + j, waveformY + (int) amps[i][j], waveformX + offsetPos + j + 1, waveformY + (int) amps[i][j + 1]);
+                        
                         /* Propogate values from previous time offset. */
                         amps[i][j] = amps[i + 1][j];
                     }
@@ -125,10 +129,16 @@ class ScrollingAudioWaveform
      */
     float checkAmpHeight(float amp)
     {
-        if ( Float.isInfinite(abs(amp)) )
+        if (Float.isInfinite(abs(amp)))
             return 0;
-        else if ( abs(amp) > maxWaveformHeight )
-            return maxWaveformHeight;
+        else if (abs(amp) > maxWaveformHeight)
+        {
+            if (amp > 0)
+                return maxWaveformHeight;
+            else
+                return -maxWaveformHeight;
+        }
+        
         return amp;
     }
     
