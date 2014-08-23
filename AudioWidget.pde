@@ -310,7 +310,7 @@ class AudioWidget extends PGraphicObject
         /* Waveform visualizer. */
         wave = new ScrollingAudioWaveform(getX() + ID3AlbumArt.width + getWidth() / 20, getX() + getWidth(), 
                                           getY() + (3.25 * ID3AlbumArt.height) / 4.0, ID3AlbumArt.height, (int)(ID3AlbumArt.height / 4.0));
-        wave.setTimeOffset(18);
+        wave.setTimeOffset(14);
         wave.setAmpBoost(0.25);
         wave.setAlpha(0);
         wave.setDelta(-15);
@@ -324,7 +324,7 @@ class AudioWidget extends PGraphicObject
         spectrum.setAmpBoost(0.5);
         spectrum.section(spectrumRanges);
         spectrum.setSensitivities(spectrumBoost);   
-        spectrum.setDividerWidth((int) (getWidth() / 150.0));
+        spectrum.setDividerWidth(floor(getWidth() / 150.0));
         // spectrum.setDividerWidth((int) (getWidth() / 100.0));
         spectrum.setDelta(15);
     }

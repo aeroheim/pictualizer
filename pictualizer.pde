@@ -50,10 +50,8 @@ void init()
 void setup()
 {    
     img = loadImage("background.jpg");
-    
-    
-    size(img.width, img.height, P2D);
-    background(img);
+        
+    size(1080, 530, P2D);
     
     tintBuffer = createGraphics(width, height, P2D);
     tintBuffer.beginDraw();
@@ -87,7 +85,7 @@ void setup()
 
     
     // initialize fonts
-    meiryo = createFont("M+ 2p thin", 64, true);
+    meiryo = createFont("M+ 2p light", 64, true);
     centuryGothic = createFont("Century Gothic", 64, true);
     
     // initialize widget
@@ -98,13 +96,16 @@ void setup()
     
     initSDrop();
     initBeatReactiveImage(img);
+    initRoamingCamera();
+    
+    smooth();
 }
 
 
 void draw()
 {   
     drawMain();
-    updateImageBuffer();
+        
     widget.draw();
     player.checkPlayerStatus();
     roam(img);
@@ -116,14 +117,15 @@ void drawMain()
     tintBuffer.beginDraw();
     tintBuffer.clear();
     
-    tintBuffer.image(img, imgX, imgY);
+    tintBuffer.scale(scale);
+    tintBuffer.image(img, cameraX, cameraY);
     
-    if (!isFlashing)
-        tintBuffer.tint(255, mainAlpha);
+    if (!isFlashing || fadeState != CameraFadeState.NO_FADE)
+        tintBuffer.tint(tint, mainAlpha);
     else
         drawBeatReactiveImage(tintBuffer);
        
-    spectrumVisualizer.draw(imageBuffer, tintBuffer);
+    // spectrumVisualizer.draw(imageBuffer, tintBuffer);
    
     /* Finish the layer and draw it. */
     tintBuffer.endDraw(); 
@@ -131,12 +133,21 @@ void drawMain()
     
     // Update values for the BeatReactiveImage.
     OnBeatDetect();
+    
+    // Update the image buffer used by spectrum visualizers
+    updateImageBuffer();
 }
 
 void updateImageBuffer()
 {
     imageBuffer.beginDraw();
-    imageBuffer.image(img, imgX, imgY);
+    
+    imageBuffer.scale(scale);
+    imageBuffer.image(img, cameraX, cameraY);
+    
+    if (fadeState != CameraFadeState.NO_FADE)
+        imageBuffer.tint(tint);
+    
     imageBuffer.endDraw();
 }
 

@@ -41,7 +41,7 @@ class AudioSpectrumVisualizer
         spectrumWidth = endX - beginX;
         maxSpectrumHeight = endY - beginY;
         display = true;
-        spectrumColor = 200;
+        spectrumColor = 255;
         
         /* Fading. */
         alpha = 255;
@@ -274,7 +274,7 @@ class AudioSpectrumVisualizer
              spectrumColor = 255;
              return true;
          }
-         spectrumColor = 200;
+         spectrumColor = 255;
          return false;
      }
      

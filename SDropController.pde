@@ -6,6 +6,7 @@ SDrop drop;
 int currDropCount;
 
 String newImagePath;
+boolean isLoadingFile;
 
 void initSDrop()
 {
@@ -45,12 +46,8 @@ void dropEvent(DropEvent theDropEvent)
                 newImagePath = theDropEvent.filePath();
                 // img = loadImage(theDropEvent.filePath());
                 thread("loadImageFromSDrop");
-                
-                
-                // thread("updateBlurBuffer");
-                
-                /* Reset our roaming camera values. */
-                initCamera();          
+                              
+                getBeatReactiveImage(img);
                 
                 currDropCount = 0;
             }
@@ -69,8 +66,15 @@ void dropEvent(DropEvent theDropEvent)
  */
 void loadImageFromSDrop()
 {
-    img = loadImage(newImagePath);
-    getBeatReactiveImage(img);   
+    isLoadingFile = true;
+    
+    img = loadImage(newImagePath);    
+    
+    getBeatReactiveImage(img);
+    
+    resetCameraPanning();  
+ 
+    isLoadingFile = false;   
 }
 
 /*

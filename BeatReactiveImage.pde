@@ -15,6 +15,8 @@ int blurLevel;
 PImage blurImg;
 PGraphics blurBuffer;
 
+int defaultTint;
+
 /*
  *  Sets up first time variables for the BeatReactiveImage.
  */
@@ -29,6 +31,7 @@ void initBeatReactiveImage(PImage image)
     maxAlpha = 275;
     dAlpha = ceil((maxAlpha - minAlpha) / (flashDuration * FRAME_RATE));
     
+    defaultTint = 255;
     blurLevel = 5;
     
     isFlashing = false;
@@ -44,7 +47,7 @@ void getBeatReactiveImage(PImage image)
     blurImg = image.get();
     blurImg.filter(BLUR, 5);
     
-    blurBuffer = createGraphics(width, height, P2D);
+    blurBuffer = createGraphics(image.width, image.height, P2D);
 }
 
 /*
@@ -92,7 +95,7 @@ void drawBeatReactiveImage(PGraphics layer)
     blurBuffer.beginDraw();
     blurBuffer.clear();
     
-    blurBuffer.image(blurImg, imgX, imgY);
+    blurBuffer.image(blurImg, cameraX, cameraY);
    
     blurBuffer.tint(255, alpha);
    

@@ -44,7 +44,7 @@ class ScrollingAudioWaveform
         TIME_OFFSET = 1;
         SMOOTH_CONST = 0.0;
         AMP_BOOST = 1.0;
-        waveColor = 200;
+        waveColor = 255;
     }
     
     void toggleDraw()
@@ -246,7 +246,7 @@ class ScrollingAudioWaveform
             waveColor = 255;
             return true;
         }
-        waveColor = 200;
+        waveColor = 255;
         return false;
     }
     
