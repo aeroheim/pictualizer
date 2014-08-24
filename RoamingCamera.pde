@@ -18,7 +18,7 @@ VerticalPanningStyle verticalPanningStyle;
 HorizontalPanningStyle horizontalPanningStyle;
 DiagonalPanningStyle diagonalPanningStyle;
 
-public static final float MIN_CAMERA_SPEED = 0.10;
+public static final float MIN_CAMERA_SPEED = 0.075;
 public static final float MID_CAMERA_SPEED = 0.15;
 public static final float MAX_CAMERA_SPEED = 0.25;
 public static final float FADE_DURATION = 1.0;
@@ -257,7 +257,7 @@ public void fadeOut()
 {
     if ((tint - fadeSpeed) < 0)
     {
-        fadeState = CameraFadeState.NO_FADE;
+        fadeState = CameraFadeState.FADE_IN;
         tint = 0;
     }
     else
@@ -478,5 +478,3 @@ private DiagonalPanningStyle getNextDiagonalPanningStyle()
 {
     return DIAGONAL_PANNING_STYLES[PANNING_RNG.nextInt(DIAGONAL_PANNING_STYLES.length)]; 
 }
-
-

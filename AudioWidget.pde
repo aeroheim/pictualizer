@@ -101,7 +101,7 @@ class AudioWidget extends PGraphicObject
         spectrumVisualizer.listen(input);
         
         beatDetect = new BeatDetect(input.bufferSize(), input.sampleRate());
-        beatDetect.setSensitivity(500);
+        beatDetect.setSensitivity(250);
         beatListener = new BeatListener(beatDetect, input);
         
         if (input instanceof AudioPlayer)

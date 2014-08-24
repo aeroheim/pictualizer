@@ -32,7 +32,6 @@ class AudioSpectrumVisualizer
     int delta;
     boolean fading;
 
-
     AudioSpectrumVisualizer(float beginX, float endX, float beginY, float endY, int numSections, int numBars, boolean backgroundMode)
     {
         /* Initialize display values. */
@@ -157,7 +156,7 @@ class AudioSpectrumVisualizer
             if ( backgroundMode )
                 destBuff.updatePixels();
             stroke(255);
-        } 
+        }
     }
     
     /* 

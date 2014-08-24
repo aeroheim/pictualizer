@@ -23,7 +23,7 @@ int defaultTint;
 void initBeatReactiveImage(PImage image)
 {
     flashDuration = 0.3;
-    addBeatDelay = 4.0;
+    addBeatDelay = 1.0;
     
     mainAlpha = 185;
     defaultAlpha = 200;
@@ -31,12 +31,12 @@ void initBeatReactiveImage(PImage image)
     maxAlpha = 275;
     dAlpha = ceil((maxAlpha - minAlpha) / (flashDuration * FRAME_RATE));
     
-    defaultTint = 255;
+    defaultTint = 225;
     blurLevel = 5;
     
     isFlashing = false;
     
-    getBeatReactiveImage(image);
+    getBeatReactiveImage(img);
 }
 
 /*
@@ -45,9 +45,9 @@ void initBeatReactiveImage(PImage image)
 void getBeatReactiveImage(PImage image)
 {
     blurImg = image.get();
-    blurImg.filter(BLUR, 5);
+    blurImg.filter(BLUR, 2);
     
-    blurBuffer = createGraphics(image.width, image.height, P2D);
+    blurBuffer = createGraphics(width, height, P2D);
 }
 
 /*
@@ -90,11 +90,12 @@ void OnBeatDetect()
 /*
  *  Draw the BeatReactiveImage.
  */
-void drawBeatReactiveImage(PGraphics layer)
+void drawBeatReactiveImage()
 {
     blurBuffer.beginDraw();
     blurBuffer.clear();
     
+    blurBuffer.scale(scale);
     blurBuffer.image(blurImg, cameraX, cameraY);
    
     blurBuffer.tint(255, alpha);
@@ -103,7 +104,7 @@ void drawBeatReactiveImage(PGraphics layer)
     
     flashImage();
     
-    layer.image(blurBuffer, 0, 0);
+    image(blurBuffer, 0, 0);
 }
 
 /*
@@ -135,5 +136,3 @@ void flashImage()
             isFlashing = false;
     }
 }
-
-

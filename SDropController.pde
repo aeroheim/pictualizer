@@ -6,7 +6,6 @@ SDrop drop;
 int currDropCount;
 
 String newImagePath;
-boolean isLoadingFile;
 
 void initSDrop()
 {
@@ -44,10 +43,9 @@ void dropEvent(DropEvent theDropEvent)
             if (currDropCount >= getDropCount(theDropEvent))
             {
                 newImagePath = theDropEvent.filePath();
-                // img = loadImage(theDropEvent.filePath());
+                
                 thread("loadImageFromSDrop");
                               
-                getBeatReactiveImage(img);
                 
                 currDropCount = 0;
             }
@@ -66,15 +64,11 @@ void dropEvent(DropEvent theDropEvent)
  */
 void loadImageFromSDrop()
 {
-    isLoadingFile = true;
-    
-    img = loadImage(newImagePath);    
+    img = loadImage(newImagePath);   
     
     getBeatReactiveImage(img);
     
-    resetCameraPanning();  
- 
-    isLoadingFile = false;   
+    resetCameraPanning();   
 }
 
 /*

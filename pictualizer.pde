@@ -98,7 +98,6 @@ void setup()
     initBeatReactiveImage(img);
     initRoamingCamera();
     
-    smooth();
 }
 
 
@@ -120,16 +119,30 @@ void drawMain()
     tintBuffer.scale(scale);
     tintBuffer.image(img, cameraX, cameraY);
     
-    if (!isFlashing || fadeState != CameraFadeState.NO_FADE)
-        tintBuffer.tint(tint, mainAlpha);
-    else
-        drawBeatReactiveImage(tintBuffer);
-       
-    // spectrumVisualizer.draw(imageBuffer, tintBuffer);
+    tintBuffer.tint(tint, 150);
    
     /* Finish the layer and draw it. */
     tintBuffer.endDraw(); 
     image(tintBuffer, 0, 0);
+    
+    // Draw the BeatReactiveImage
+    if (isFlashing && fadeState == CameraFadeState.NO_FADE)
+        drawBeatReactiveImage();
+    
+    /*
+    // Draw the background spectrum visualizer
+    if (fadeState == CameraFadeState.NO_FADE)
+    {
+        tintBuffer.beginDraw();  
+        {
+            tintBuffer.clear();
+            spectrumVisualizer.draw(imageBuffer, tintBuffer); 
+        }
+        tintBuffer.endDraw();  
+        
+        image(tintBuffer, 0, 0);
+    }
+    */
     
     // Update values for the BeatReactiveImage.
     OnBeatDetect();
@@ -156,5 +169,3 @@ void stop()
   // songPlayer.close();
   super.stop();
 }
-
-
