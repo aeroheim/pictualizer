@@ -281,22 +281,22 @@ class AudioWidget extends PGraphicObject
     
     private void initTextButtons()
     {     
-        previous = new TextButton(getX(), getY() + ID3AlbumArt.height, meiryo, artistFontSize, "< <");
+        previous = new TextButton(getX(), getY() + ID3AlbumArt.height, mplus, artistFontSize, "< <");
             previous.setColor(200);
             previous.setDimColor(200);
             previous.setHighlightColor(255);
             
-        forward = new TextButton(getX() + ID3AlbumArt.width - previous.getWidth(), previous.getY(), meiryo, artistFontSize, "> >");
+        forward = new TextButton(getX() + ID3AlbumArt.width - previous.getWidth(), previous.getY(), mplus, artistFontSize, "> >");
             forward.setColor(200);
             forward.setDimColor(200);
             forward.setHighlightColor(255);
             
-        seek = new TextButton(shuffle.getX() + shuffle.getWidth() * 1.5, previous.getY(), meiryo, artistFontSize, "seek");
+        seek = new TextButton(shuffle.getX() + shuffle.getWidth() * 1.5, previous.getY(), mplus, artistFontSize, "seek");
             seek.setColor(200);
             seek.setDimColor(200);
             seek.setHighlightColor(255);
             
-        vol = new TextButton(seek.getX(), previous.getY(), meiryo, artistFontSize, "vol.");
+        vol = new TextButton(seek.getX(), previous.getY(), mplus, artistFontSize, "vol.");
             vol.setColor(200);
             vol.setDimColor(200);
             vol.setHighlightColor(255);
@@ -378,7 +378,7 @@ class AudioWidget extends PGraphicObject
     
     void drawMetaData()
     {
-        textFont(meiryo, 12);
+        textFont(mplus, 12);
         textAlign(LEFT, TOP);
 
         /* Title. */ 
@@ -515,20 +515,20 @@ class AudioWidget extends PGraphicObject
             
             /* Generate metadata for song title. */
             if (metaData.title().length() != 0)
-                title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, metaData.title());
+                title = new ScrollingText(startX, getY(), endX, mplus, titleFontSize, metaData.title());
             else
-                title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, getFileName(metaData.fileName()));
+                title = new ScrollingText(startX, getY(), endX, mplus, titleFontSize, getFileName(metaData.fileName()));
             
             /* Generate metadata for song artist. */  
             if (metaData.author().length() != 0)
-                artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, metaData.author());
+                artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, mplus, artistFontSize, metaData.author());
             else
-                artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "unknown");
+                artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, mplus, artistFontSize, "unknown");
         }
         else
         {
-            title = new ScrollingText(startX, getY(), endX, meiryo, titleFontSize, "input");
-            artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, meiryo, artistFontSize, "audio input");
+            title = new ScrollingText(startX, getY(), endX, mplus, titleFontSize, "input");
+            artist = new ScrollingText(startX, getY() + textAscent() + textDescent() / 2, endX, mplus, artistFontSize, "audio input");
         }
             
         /* Set default scroll options. */

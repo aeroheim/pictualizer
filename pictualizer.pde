@@ -31,7 +31,7 @@ AudioSpectrumVisualizer spectrumVisualizer;
 AudioWidget widget;
 
 /* Fonts. */
-PFont meiryo;
+PFont mplus;
 PFont centuryGothic;
 
 public static int FRAME_RATE = 60;
@@ -85,8 +85,8 @@ void setup()
 
     
     // initialize fonts
-    meiryo = createFont("M+ 2p light", 64, true);
-    centuryGothic = createFont("Century Gothic", 64, true);
+    mplus = createFont("mplus-2p-light.ttf", 64, true);
+    centuryGothic = createFont("GOTHIC.TTF", 64, true);
     
     // initialize widget
     // widget = new AudioWidget(player, width / 6.0, height / 3.0, (4.0 * width) / 6.0, (2 * height) / 5.0);
