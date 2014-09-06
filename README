@@ -1,17 +1,12 @@
-Pictualizer is a drag and drop music visualizer programmed using Processing, an open source programming language.
-It is being developed as a music player with a focus on sleek and appealing music visualization.
+Pictualizer is a music player/visualizer hybrid. This is an interactive prototype made in Processing.
 
-Pictualizer was started during July 2012.
+http://www.youtube.com/watch?v=ysbunNvis_s
+https://www.youtube.com/watch?v=7hUPBnIxwwg
 
-Open source Processing libraries used:
+Processing libraries used:
 
 ControlP5 - by Andreas Schlegel
 Minim - by Damien Di Fede
 SDrop - by Andreas Schlegel
 
-The source code is currently undergoing a major re-write, as of 12/1/13.
-
-Have a video of it in action! (old version, the current version is coming along a lot better.)
-
-http://www.youtube.com/watch?v=ysbunNvis_s
 
